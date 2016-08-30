@@ -1,8 +1,13 @@
 @echo off
 
-set name=Rebus.Wire
-set version=%1
+set name=%1
+set version=%2
 set reporoot=%~dp0\..
+
+if "%name%"=="" (
+  echo Please remember to specify the name to build as an argument.
+  goto exit_fail
+)
 
 if "%version%"=="" (
   echo Please remember to specify which version to build as an argument.

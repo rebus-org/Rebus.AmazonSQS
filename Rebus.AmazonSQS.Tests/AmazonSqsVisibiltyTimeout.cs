@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using Rebus.Tests.Contracts;
 
@@ -9,7 +10,7 @@ namespace Rebus.AmazonSQS.Tests
     public class AmazonSqsVisibiltyTimeout : SqsFixtureBase
     {
         [Test]
-        public async void WhenMessageVisibilityIsRenewed_ThenItsNotVisibleForOthers()
+        public async Task WhenMessageVisibilityIsRenewed_ThenItsNotVisibleForOthers()
         {
             //arrange
             var peeklockDuration = TimeSpan.FromSeconds(3);

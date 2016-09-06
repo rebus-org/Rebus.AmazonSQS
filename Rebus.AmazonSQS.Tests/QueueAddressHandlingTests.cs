@@ -19,7 +19,7 @@ namespace Rebus.AmazonSQS.Tests
         }
 
         //[Test]
-        //public async void WhenTheInputAddressIsAFullUrlAndDestinationIsQueueName_ThenItsStillWorks()
+        //public async Task WhenTheInputAddressIsAFullUrlAndDestinationIsQueueName_ThenItsStillWorks()
         //{
         //    //arrange
 
@@ -42,7 +42,7 @@ namespace Rebus.AmazonSQS.Tests
         //}
 
         //[Test]
-        //public async void WhenTheInputIsAQueueNameAndDestinationIsFullUrl_ThenItsStillWorks()
+        //public async Task WhenTheInputIsAQueueNameAndDestinationIsFullUrl_ThenItsStillWorks()
         //{
         //    //arrange
 
@@ -66,7 +66,7 @@ namespace Rebus.AmazonSQS.Tests
         //}
 
         //[Test]
-        //public async void WhenBothInputAndDestinationIsFullUrl_ThenItWorks()
+        //public async Task WhenBothInputAndDestinationIsFullUrl_ThenItWorks()
         //{
         //    //arrange
 
@@ -98,6 +98,7 @@ namespace Rebus.AmazonSQS.Tests
             //assert
 
         }
+
         private async Task TestSendReceive(ITransport outputTransport, string destinationQueueUrlOrName, ITransport destinationTransport)
         {
             await WithContext(async (context) => { await outputTransport.Send(destinationQueueUrlOrName, MessageWith("hallo"), context); });

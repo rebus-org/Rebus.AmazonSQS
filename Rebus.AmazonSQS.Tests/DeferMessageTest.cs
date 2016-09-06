@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon;
@@ -8,7 +7,6 @@ using NUnit.Framework;
 using Rebus.Activation;
 using Rebus.AmazonSQS.Config;
 using Rebus.Config;
-using Rebus.Tests;
 using Rebus.Tests.Contracts;
 using Rebus.Tests.Contracts.Extensions;
 
@@ -33,7 +31,7 @@ namespace Rebus.AmazonSQS.Tests
                 RegionEndpoint = RegionEndpoint.GetBySystemName(AmazonSqsTransportFactory.ConnectionInfo.RegionEndpoint)
             };
 
-            var queueName = TestConfig.QueueName("defertest");
+            var queueName = TestConfig.GetName("defertest");
 
             AmazonSqsManyMessagesTransportFactory.PurgeQueue(queueName);
 

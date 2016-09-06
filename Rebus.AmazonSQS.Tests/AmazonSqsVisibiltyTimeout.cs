@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using NUnit.Framework;
-using Rebus.Tests;
 using Rebus.Tests.Contracts;
 
 namespace Rebus.AmazonSQS.Tests
@@ -17,10 +16,10 @@ namespace Rebus.AmazonSQS.Tests
 
             var transportFactory = new AmazonSqsTransportFactory();
             
-            var inputqueueName = TestConfig.QueueName("inputQueue");
+            var inputqueueName = TestConfig.GetName("inputQueue");
             var inputQueue = transportFactory.Create(inputqueueName, peeklockDuration);
 
-            var inputqueueName2 = TestConfig.QueueName("outputQueue");
+            var inputqueueName2 = TestConfig.GetName("outputQueue");
             var outputQueue = transportFactory.Create(inputqueueName2);
 
             await WithContext(async context =>

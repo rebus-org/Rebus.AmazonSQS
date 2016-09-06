@@ -60,7 +60,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Rebus.Tests.Contracts, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Rebus.Tests.Contracts.2.0.0-a5\lib\NET45\Rebus.Tests.Contracts.dll</HintPath>
+      <HintPath>..\packages\Rebus.Tests.Contracts.2.0.0-a8\lib\NET452\Rebus.Tests.Contracts.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />

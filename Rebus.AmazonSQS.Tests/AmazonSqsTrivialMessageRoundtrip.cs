@@ -7,7 +7,6 @@ using NUnit.Framework;
 using Rebus.Activation;
 using Rebus.Config;
 using Rebus.Messages;
-using Rebus.Tests;
 using Rebus.Tests.Contracts;
 using Rebus.Tests.Contracts.Extensions;
 
@@ -23,7 +22,7 @@ namespace Rebus.AmazonSQS.Tests
 
         protected override void SetUp()
         {
-            _brilliantQueueName = TestConfig.QueueName("roundtrippin");
+            _brilliantQueueName = TestConfig.GetName("roundtrippin");
             _transport = AmazonSqsTransportFactory.CreateTransport(_brilliantQueueName, TimeSpan.FromSeconds(30));
             _transport.Purge();
         }

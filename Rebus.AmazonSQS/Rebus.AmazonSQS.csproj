@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Rebus.AmazonSQS</RootNamespace>
     <AssemblyName>Rebus.AmazonSQS</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -41,7 +41,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Rebus, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Rebus.2.0.0-a9\lib\NET452\Rebus.dll</HintPath>
+      <HintPath>..\packages\Rebus.2.0.0-a11\lib\NET45\Rebus.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />

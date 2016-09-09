@@ -40,8 +40,8 @@
       <HintPath>..\packages\AWSSDK.SQS.3.1.0.13\lib\net45\AWSSDK.SQS.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Rebus, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Rebus.2.0.0-a12\lib\NET45\Rebus.dll</HintPath>
+    <Reference Include="Rebus, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Rebus.2.0.0-b02\lib\NET45\Rebus.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />

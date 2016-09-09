@@ -7,3 +7,7 @@
 ## 2.0.0-a4
 
 * Test release again
+
+## 2.0.0-b01
+
+* Test release

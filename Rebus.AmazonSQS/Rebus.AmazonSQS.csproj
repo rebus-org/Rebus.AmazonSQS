@@ -7,7 +7,7 @@
     <ProjectGuid>{5943A487-5B6C-43CC-AD31-8AC4AA3CA5D9}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Rebus.AmazonSQS</RootNamespace>
+    <RootNamespace>Rebus</RootNamespace>
     <AssemblyName>Rebus.AmazonSQS</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -46,14 +46,9 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AmazonSqsTransport.cs" />
+    <Compile Include="AmazonSQS\AmazonSqsTransport.cs" />
     <Compile Include="Config\AmazonSqsConfigurationExtensions.cs" />
     <Compile Include="Config\DisabledTimeoutManager.cs" />
     <Compile Include="Properties\AssemblyInfo_Patch.cs" />
@@ -68,6 +63,7 @@
   <ItemGroup>
     <Analyzer Include="..\packages\AWSSDK.SQS.3.1.0.13\analyzers\dotnet\cs\AWSSDK.SQS.CodeAnalysis.dll" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>$(ProjectDir)\..\scripts\patch_assemblyinfo.cmd $(ProjectDir)</PreBuildEvent>

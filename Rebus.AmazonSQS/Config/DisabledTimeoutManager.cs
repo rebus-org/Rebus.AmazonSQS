@@ -5,7 +5,7 @@ using Rebus.Extensions;
 using Rebus.Messages;
 using Rebus.Timeouts;
 
-namespace Rebus.AmazonSQS.Config
+namespace Rebus.Config
 {
     class DisabledTimeoutManager : ITimeoutManager
     {

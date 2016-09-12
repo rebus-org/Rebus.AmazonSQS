@@ -1,6 +1,6 @@
 ﻿using Amazon;
 using Amazon.SQS;
-using Rebus.Config;
+using Rebus.AmazonSQS;
 using Rebus.Logging;
 using Rebus.Pipeline;
 using Rebus.Pipeline.Receive;
@@ -8,7 +8,7 @@ using Rebus.Threading;
 using Rebus.Timeouts;
 using Rebus.Transport;
 
-namespace Rebus.AmazonSQS.Config
+namespace Rebus.Config
 {
     /// <summary>
     /// Configuration extensions for the Amazon Simple Queue Service transport

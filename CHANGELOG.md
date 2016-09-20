@@ -18,4 +18,5 @@
 
 ## 2.0.0
 
+* Update AWS Core and SQS deps to 3.3.0
 * Release 2.0.0

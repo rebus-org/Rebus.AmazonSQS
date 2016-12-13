@@ -1,8 +1,8 @@
-﻿using NUnit.Framework;
+﻿using Xunit;
 using Rebus.Tests.Contracts.Transports;
 
 namespace Rebus.AmazonSQS.Tests
 {
-    [TestFixture, Category(Category.AmazonSqs)]
+    [Trait("Category", Category.AmazonSqs)]
     public class AmazonSqsSimpleSend : BasicSendReceive<AmazonSqsTransportFactory> { }
 }

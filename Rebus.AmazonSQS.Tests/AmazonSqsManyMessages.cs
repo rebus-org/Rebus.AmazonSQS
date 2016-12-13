@@ -1,9 +1,9 @@
-﻿using NUnit.Framework;
-using Rebus.Tests.Contracts.Transports;
+﻿using Rebus.Tests.Contracts.Transports;
+using Xunit;
 
 namespace Rebus.AmazonSQS.Tests
 {
-    [TestFixture, Category(Category.AmazonSqs)]
+    [Trait("Category", Category.AmazonSqs)]
     public class AmazonSqsManyMessages : TestManyMessages<AmazonSqsManyMessagesTransportFactory>
     {
     }

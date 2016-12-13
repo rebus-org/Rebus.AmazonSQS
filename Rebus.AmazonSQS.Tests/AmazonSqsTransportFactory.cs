@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.IO;
 using System.Linq;
 using Amazon;
@@ -17,7 +16,7 @@ namespace Rebus.AmazonSQS.Tests
     {
         static ConnectionInfo _connectionInfo;
 
-        internal static ConnectionInfo ConnectionInfo => _connectionInfo ?? (_connectionInfo = ConnectionInfoFromFileOrNull(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "sqs_connectionstring.txt"))
+        internal static ConnectionInfo ConnectionInfo => _connectionInfo ?? (_connectionInfo = ConnectionInfoFromFileOrNull(Path.Combine(AppContext.BaseDirectory, "..", "..", "sqs_connectionstring.txt"))
                                                                                                ?? ConnectionInfoFromEnvironmentVariable("rebus2_asqs_connection_string")
                                                                                                ?? Throw("Could not find Amazon Sqs connetion Info!"));
 
@@ -111,7 +110,7 @@ namespace Rebus.AmazonSQS.Tests
         }
         static ConnectionInfo Throw(string message)
         {
-            throw new ConfigurationErrorsException(message);
+            throw new Exception($"Configuration error: {message}");
         }
 
 

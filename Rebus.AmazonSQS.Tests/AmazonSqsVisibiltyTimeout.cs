@@ -1,15 +1,15 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using NUnit.Framework;
+using Xunit;
 using Rebus.Tests.Contracts;
 
 namespace Rebus.AmazonSQS.Tests
 {
-    [TestFixture, Category(Category.AmazonSqs)]
+    [Trait("Category", Category.AmazonSqs)]
     public class AmazonSqsVisibiltyTimeout : SqsFixtureBase
     {
-        [Test]
+        [Fact]
         public async Task WhenMessageVisibilityIsRenewed_ThenItsNotVisibleForOthers()
         {
             //arrange
@@ -34,7 +34,7 @@ namespace Rebus.AmazonSQS.Tests
             {
                 var transportMessage = await inputQueue.Receive(context, cancellationToken);
 
-                Assert.That(transportMessage, Is.Not.Null, "Expected to receive the message that we just sent");
+                Assert.NotNull(transportMessage);
 
                 // pretend that it takes a while to handle the message
                 Thread.Sleep(6000);
@@ -44,7 +44,7 @@ namespace Rebus.AmazonSQS.Tests
                 {
                     var innerMessage = await inputQueue.Receive(innerContext, cancellationToken);
 
-                    Assert.That(innerMessage, Is.Null, "Did not expect to receive a message here because its peek lock should have been renewed automatically");
+                    Assert.Null(innerMessage);
                 });
             });
         }

@@ -22,8 +22,12 @@ sqs_connectionstring.txt
 _NCrunch_*
 *.user
 *.backup
+**/*.lock.json
 
 # MS Guideline
 **/packages/*
 !**/packages/build/
 AssemblyInfo_Patch.cs
+
+# JetBrains Rider
+.idea/

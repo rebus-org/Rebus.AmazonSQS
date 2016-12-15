@@ -2,7 +2,8 @@
   "version": "2.0.2",
   "testRunner": "xunit",
   "buildOptions": {
-    "debugType": "portable"
+    "debugType": "portable",
+    "copyToOutput": { "includeFiles": [ "sqs_connectionstring.txt" ] }
   },
   "dependencies": {
     "AWSSDK.Core": "3.3.6.1",

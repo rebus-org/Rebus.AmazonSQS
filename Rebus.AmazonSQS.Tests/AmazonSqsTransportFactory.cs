@@ -16,7 +16,7 @@ namespace Rebus.AmazonSQS.Tests
     {
         static ConnectionInfo _connectionInfo;
 
-        internal static ConnectionInfo ConnectionInfo => _connectionInfo ?? (_connectionInfo = ConnectionInfoFromFileOrNull(Path.Combine(AppContext.BaseDirectory, "..", "..", "sqs_connectionstring.txt"))
+        internal static ConnectionInfo ConnectionInfo => _connectionInfo ?? (_connectionInfo = ConnectionInfoFromFileOrNull(Path.Combine(AppContext.BaseDirectory, "sqs_connectionstring.txt"))
                                                                                                ?? ConnectionInfoFromEnvironmentVariable("rebus2_asqs_connection_string")
                                                                                                ?? Throw("Could not find Amazon Sqs connetion Info!"));
 
@@ -121,8 +121,8 @@ namespace Rebus.AmazonSQS.Tests
         internal string SecretAccessKey;
         internal string RegionEndpoint;
         /// <summary>
-        /// Expects format Key=Value¤Key=Value¤Key=Value
-        /// Ie. AccessKeyId=xxxxx¤SecretAccessKey=yyyy¤BaseQueueUrl=asdasdas¤RegionEndpoint=asdasd
+        /// Expects format Key=Value;Key=Value;Key=Value
+        /// Ie. AccessKeyId=xxxxx;SecretAccessKey=yyyy;BaseQueueUrl=asdasdas;RegionEndpoint=asdasd
         /// </summary>
         /// <param name="textString"></param>
         /// <returns></returns>
@@ -132,11 +132,7 @@ namespace Rebus.AmazonSQS.Tests
             
             var keyValuePairs = textString.Split("; ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
             
-            Console.WriteLine(@"Found {0} pairs. Expected 3 on the form
-
-AccessKeyId=blabla; SecretAccessKey=blablalba; RegionEndpoint=something
-
-", keyValuePairs.Length);
+            Console.WriteLine(@"Found {0} pairs. Expected 3 on the form AccessKeyId=blabla; SecretAccessKey=blablalba; RegionEndpoint=something", keyValuePairs.Length);
             try
             {
                 var keysAndValues = keyValuePairs.ToDictionary((kv) => kv.Split('=')[0], (kv) => kv.Split('=')[1]);

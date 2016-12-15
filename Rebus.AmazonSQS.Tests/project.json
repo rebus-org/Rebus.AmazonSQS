@@ -1,21 +1,21 @@
 {
-  "version": "2.0.2",
+  "version": "1.0.0-*",
   "testRunner": "xunit",
   "buildOptions": {
     "debugType": "portable",
     "copyToOutput": { "includeFiles": [ "sqs_connectionstring.txt" ] }
   },
   "dependencies": {
+    "xunit":"2.2.0-beta4-build3444",
+    "dotnet-test-xunit":"2.2.0-preview2-build1029",
     "AWSSDK.Core": "3.3.6.1",
     "AWSSDK.SQS": "3.3.1.3",
-    "Rebus": "2.1.7",
-    "Rebus.Tests.Contracts": "2.2.0",
-    "Rebus.AmazonSQS": "1.0.0-*",
-    "xunit":"2.2.0-beta4-build3444",
-    "dotnet-test-xunit":"2.2.0-preview2-build1029"
+    "Corebus": "1.0.0",
+    "Corebus.AmazonSQS": "1.0.0-*",
+    "Corebus.Tests.Contracts": "1.0.0"
   },
   "frameworks": {
-    "netcoreapp1.0": {
+    "netcoreapp1.1": {
       "dependencies": {
         "Microsoft.NETCore.App": {
           "type": "platform",

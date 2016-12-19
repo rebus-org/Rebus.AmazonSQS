@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Amazon.Runtime;
 using Amazon.SQS;
 using Amazon.SQS.Model;
 using Rebus.Bus;
@@ -29,8 +30,7 @@ namespace Rebus.AmazonSQS
         const string ClientContextKey = "SQS_Client";
         const string OutgoingMessagesItemsKey = "SQS_OutgoingMessages";
 
-        readonly string _accessKeyId;
-        readonly string _secretAccessKey;
+        readonly AWSCredentials _credentials;
         readonly AmazonSQSConfig _amazonSqsConfig;
         readonly IAsyncTaskFactory _asyncTaskFactory;
         readonly ILog _log;
@@ -43,9 +43,16 @@ namespace Rebus.AmazonSQS
         /// Constructs the transport with the specified settings
         /// </summary>
         public AmazonSqsTransport(string inputQueueAddress, string accessKeyId, string secretAccessKey, AmazonSQSConfig amazonSqsConfig, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory)
+            : this(inputQueueAddress, Credentials(accessKeyId, secretAccessKey), amazonSqsConfig, rebusLoggerFactory, asyncTaskFactory)
         {
-            if (accessKeyId == null) throw new ArgumentNullException(nameof(accessKeyId));
-            if (secretAccessKey == null) throw new ArgumentNullException(nameof(secretAccessKey));
+        }
+
+        /// <summary>
+        /// Constructs the transport with the specified settings
+        /// </summary>
+        public AmazonSqsTransport(string inputQueueAddress, AWSCredentials credentials, AmazonSQSConfig amazonSqsConfig, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory)
+        {
+            if (credentials == null) throw new ArgumentNullException(nameof(credentials));
             if (amazonSqsConfig == null) throw new ArgumentNullException(nameof(amazonSqsConfig));
             if (rebusLoggerFactory == null) throw new ArgumentNullException(nameof(rebusLoggerFactory));
 
@@ -63,10 +70,17 @@ namespace Rebus.AmazonSQS
                 }
             }
 
-            _accessKeyId = accessKeyId;
-            _secretAccessKey = secretAccessKey;
+            _credentials = credentials;
             _amazonSqsConfig = amazonSqsConfig;
             _asyncTaskFactory = asyncTaskFactory;
+        }
+
+        private static AWSCredentials Credentials(string accessKeyId, string secretAccessKey)
+        {
+            if (accessKeyId == null) throw new ArgumentNullException(nameof(accessKeyId));
+            if (secretAccessKey == null) throw new ArgumentNullException(nameof(secretAccessKey));
+
+            return new BasicAWSCredentials(accessKeyId, secretAccessKey);
         }
 
         /// <summary>
@@ -110,7 +124,7 @@ namespace Rebus.AmazonSQS
         {
             _log.Info("Creating a new sqs queue:  with name: {0} on region: {1}", address, _amazonSqsConfig.RegionEndpoint);
 
-            using (var client = new AmazonSQSClient(_accessKeyId, _secretAccessKey, _amazonSqsConfig))
+            using (var client = new AmazonSQSClient(_credentials, _amazonSqsConfig))
             {
                 var queueName = GetQueueNameFromAddress(address);
                 var response = client.CreateQueue(new CreateQueueRequest(queueName));
@@ -133,7 +147,7 @@ namespace Rebus.AmazonSQS
 
             try
             {
-                using (var client = new AmazonSQSClient(_accessKeyId, _secretAccessKey, _amazonSqsConfig))
+                using (var client = new AmazonSQSClient(_credentials, _amazonSqsConfig))
                 {
                     var stopwatch = Stopwatch.StartNew();
 
@@ -407,7 +421,7 @@ namespace Rebus.AmazonSQS
         {
             return context.GetOrAdd(ClientContextKey, () =>
             {
-                var amazonSqsClient = new AmazonSQSClient(_accessKeyId, _secretAccessKey, _amazonSqsConfig);
+                var amazonSqsClient = new AmazonSQSClient(_credentials, _amazonSqsConfig);
                 context.OnDisposed(amazonSqsClient.Dispose);
                 return amazonSqsClient;
             });
@@ -478,7 +492,7 @@ namespace Rebus.AmazonSQS
 
         public void DeleteQueue()
         {
-            using (var client = new AmazonSQSClient(_accessKeyId, _secretAccessKey, _amazonSqsConfig))
+            using (var client = new AmazonSQSClient(_credentials, _amazonSqsConfig))
             {
                 client.DeleteQueue(_queueUrl);
             }

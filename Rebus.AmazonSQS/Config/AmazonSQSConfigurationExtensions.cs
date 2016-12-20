@@ -79,7 +79,7 @@ namespace Rebus.Config
         /// <summary>
         /// Configures Rebus to use Amazon Simple Queue Service as the message transport
         /// </summary>
-        private static void UseAmazonSqsAsOneWayClient(StandardConfigurer<ITransport> configurer, AWSCredentials credentials, AmazonSQSConfig amazonSqsConfig)
+        static void UseAmazonSqsAsOneWayClient(StandardConfigurer<ITransport> configurer, AWSCredentials credentials, AmazonSQSConfig amazonSqsConfig)
         {
             configurer.Register(c =>
             {

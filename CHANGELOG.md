@@ -20,3 +20,11 @@
 
 * Update AWS Core and SQS deps to 3.3.0
 * Release 2.0.0
+
+## 2.1.0
+
+* Add configuration extension that accepts `AWSCredentials` - thanks [MooseMagnet]
+
+---
+
+[MooseMagnet]: https://github.com/MooseMagnet

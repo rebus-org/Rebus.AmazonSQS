@@ -1,6 +1,6 @@
 {
   "name": "Corebus.AmazonSQS",
-  "version": "1.0.0-*",
+  "version": "1.0.1-*",
   "description": "Provides an Amazon SQS transport for (Co)Rebus.",
   "authors": [
     "mookid8000",
@@ -12,7 +12,7 @@
   "dependencies": {
     "AWSSDK.Core": "3.3.6.1",
     "AWSSDK.SQS": "3.3.1.3",
-    "Corebus": "1.0.0"
+    "Corebus": "1.0.1"
   },
   "frameworks": {
     "netcoreapp1.1": {

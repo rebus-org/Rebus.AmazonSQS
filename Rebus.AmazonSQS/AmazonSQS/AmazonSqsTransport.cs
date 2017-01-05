@@ -58,7 +58,7 @@ namespace Rebus.AmazonSQS
 
             Address = inputQueueAddress;
 
-            _log = rebusLoggerFactory.GetCurrentClassLogger();
+            _log = rebusLoggerFactory.GetLogger<AmazonSqsTransport>();
 
             if (Address != null)
             {
@@ -107,9 +107,9 @@ namespace Rebus.AmazonSQS
         {
             try
             {
-                using (var context = new DefaultTransactionContext())
+                using (new DefaultTransactionContextScope())
                 {
-                    var inputQueueUrl = GetDestinationQueueUrlByName(Address, context);
+                    var inputQueueUrl = GetDestinationQueueUrlByName(Address, AmbientTransactionContext.Current);
 
                     return inputQueueUrl;
                 }

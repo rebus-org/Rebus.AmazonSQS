@@ -25,6 +25,10 @@
 
 * Add configuration extension that accepts `AWSCredentials` - thanks [MooseMagnet]
 
+## 3.0.0
+
+* Update to Rebus 3
+
 ---
 
 [MooseMagnet]: https://github.com/MooseMagnet

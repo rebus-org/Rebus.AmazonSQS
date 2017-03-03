@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-#if NET45
-using System.Configuration;
-#endif
 using System.IO;
 using System.Linq;
 using Amazon;

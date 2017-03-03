@@ -3,31 +3,31 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using NUnit.Framework;
 using Rebus.Activation;
 using Rebus.Config;
 using Rebus.Messages;
 using Rebus.Tests.Contracts;
 using Rebus.Tests.Contracts.Extensions;
-using Xunit;
 
 #pragma warning disable 1998
 
 namespace Rebus.AmazonSQS.Tests
 {
-    [Trait("Category", Category.AmazonSqs)]
+    [TestFixture, Category(Category.AmazonSqs)]
     public class AmazonSqsTrivialMessageRoundtrip : SqsFixtureBase
     {
         AmazonSqsTransport _transport;
         string _brilliantQueueName;
 
-        public AmazonSqsTrivialMessageRoundtrip()
+        protected override void SetUp()
         {
             _brilliantQueueName = TestConfig.GetName("roundtrippin");
             _transport = AmazonSqsTransportFactory.CreateTransport(_brilliantQueueName, TimeSpan.FromSeconds(30));
             _transport.Purge();
         }
 
-        [Fact]
+        [Test]
         public async Task CanRoundtripSingleMessageWithTransport()
         {
             const string positiveGreeting = "hej meeeeed dig min vennnnn!!!!!!111";
@@ -41,10 +41,10 @@ namespace Rebus.AmazonSQS.Tests
 
             var receivedMessage = await _transport.WaitForNextMessage();
 
-            Assert.Equal(positiveGreeting, Encoding.UTF8.GetString(receivedMessage.Body));
+            Assert.That(Encoding.UTF8.GetString(receivedMessage.Body), Is.EqualTo(positiveGreeting));
         }
 
-        [Fact]
+        [Test]
         public async Task CanRoundtripSingleMessageWithBus()
         {
             using (var activator = new BuiltinHandlerActivator())

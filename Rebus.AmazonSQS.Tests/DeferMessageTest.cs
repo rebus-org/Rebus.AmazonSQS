@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Amazon;
 using Amazon.SQS;
-using Xunit;
+using NUnit.Framework;
 using Rebus.Activation;
 using Rebus.Config;
 using Rebus.Tests.Contracts;
@@ -13,13 +13,14 @@ using Rebus.Tests.Contracts.Extensions;
 
 namespace Rebus.AmazonSQS.Tests
 {
-    [Trait("Category", Category.AmazonSqs)]
+    [TestFixture, Category(Category.AmazonSqs)]
     public class DeferMessageTest : SqsFixtureBase
     {
         BuiltinHandlerActivator _activator;
         RebusConfigurer _configurer;
 
-        public DeferMessageTest() {
+        protected override void SetUp()
+        {
             var connectionInfo = AmazonSqsTransportFactory.ConnectionInfo;
 
             var accessKeyId = connectionInfo.AccessKeyId;
@@ -40,7 +41,7 @@ namespace Rebus.AmazonSQS.Tests
                 .Options(o => o.LogPipeline());
         }
 
-        [Fact]
+        [Test]
         public async Task CanDeferMessage()
         {
             var gotTheMessage = new ManualResetEvent(false);
@@ -62,7 +63,7 @@ namespace Rebus.AmazonSQS.Tests
 
             var elapsed = receiveTime - sendTime;
 
-            Assert.True(elapsed > TimeSpan.FromSeconds(8));
+            Assert.That(elapsed, Is.GreaterThan(TimeSpan.FromSeconds(8)));
         }
     }
 }

@@ -1,22 +1,24 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Xunit;
+using NUnit.Framework;
 using Rebus.Transport;
 
 namespace Rebus.AmazonSQS.Tests
 {
-    [Trait("Category", Category.AmazonSqs)]
+    [TestFixture, Category(Category.AmazonSqs)]
     public class QueueAddressHandlingTests : SqsFixtureBase
     {
         private AmazonSqsTransportFactory _transportFactory;
 
-        public QueueAddressHandlingTests()
+        protected override void SetUp()
         {
+            base.SetUp();
             _transportFactory = new AmazonSqsTransportFactory();
+
         }
 
-        //[Fact]
+        //[Test]
         //public async Task WhenTheInputAddressIsAFullUrlAndDestinationIsQueueName_ThenItsStillWorks()
         //{
         //    //arrange
@@ -39,7 +41,7 @@ namespace Rebus.AmazonSQS.Tests
 
         //}
 
-        //[Fact]
+        //[Test]
         //public async Task WhenTheInputIsAQueueNameAndDestinationIsFullUrl_ThenItsStillWorks()
         //{
         //    //arrange
@@ -63,7 +65,7 @@ namespace Rebus.AmazonSQS.Tests
 
         //}
 
-        //[Fact]
+        //[Test]
         //public async Task WhenBothInputAndDestinationIsFullUrl_ThenItWorks()
         //{
         //    //arrange
@@ -83,7 +85,7 @@ namespace Rebus.AmazonSQS.Tests
 
         //}
 
-        [Fact]
+        [Test]
         public void WhenUsingAQueuNameWithSlash_ThenArgumentExcetiopIsThrown()
         {
             //arrange
@@ -105,7 +107,7 @@ namespace Rebus.AmazonSQS.Tests
             {
                 var received = await destinationTransport.Receive(context, new CancellationTokenSource().Token);
 
-                Assert.Equal("hallo", GetStringBody(received));
+                Assert.AreEqual("hallo", GetStringBody(received));
             });
         }
 

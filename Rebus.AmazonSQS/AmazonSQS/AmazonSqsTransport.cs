@@ -57,7 +57,7 @@ namespace Rebus.AmazonSQS
             if (rebusLoggerFactory == null) throw new ArgumentNullException(nameof(rebusLoggerFactory));
 
             Address = inputQueueAddress;
-            
+
 
             _log = rebusLoggerFactory.GetLogger<AmazonSqsTransport>();
 

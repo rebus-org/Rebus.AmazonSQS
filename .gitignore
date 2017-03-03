@@ -23,6 +23,7 @@ _NCrunch_*
 *.user
 *.backup
 **/*.lock.json
+**/*.orig
 
 # MS Guideline
 **/packages/*

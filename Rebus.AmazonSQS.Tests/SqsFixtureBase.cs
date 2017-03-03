@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Rebus.Messages;
-using Rebus.Tests;
 using Rebus.Tests.Contracts;
 using Rebus.Transport;
 
@@ -15,9 +14,9 @@ namespace Rebus.AmazonSQS.Tests
 
         protected async Task WithContext(Func<ITransactionContext, Task> contextAction, bool completeTransaction = true)
         {
-            using (var context = new DefaultTransactionContext())
+            using (var context = new DefaultTransactionContextScope())
             {
-                await contextAction(context);
+                await contextAction(AmbientTransactionContext.Current);
 
                 if (completeTransaction)
                 {

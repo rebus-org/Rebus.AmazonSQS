@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.Runtime;
@@ -129,7 +130,7 @@ namespace Rebus.AmazonSQS
             {
                 var queueName = GetQueueNameFromAddress(address);
                 var response = client.CreateQueueAsync(new CreateQueueRequest(queueName)).Result;
-
+                
                 if (response.HttpStatusCode != HttpStatusCode.OK)
                 {
                     throw new Exception($"Could not create queue '{queueName}' - got HTTP {response.HttpStatusCode}");
@@ -448,8 +449,29 @@ namespace Rebus.AmazonSQS
 
         Dictionary<string, MessageAttributeValue> CreateAttributesFromHeaders(Dictionary<string, string> headers)
         {
+            Dictionary<string, MessageAttributeValue> attributes = new Dictionary<string, MessageAttributeValue>();
+            attributes.Add("Rebus.Messages.Headers", ConcatenateCoreRebusHeaders(headers));
+
             return headers.ToDictionary(key => key.Key,
                                         value => new MessageAttributeValue { DataType = "String", StringValue = value.Value });
+        }
+
+        private MessageAttributeValue ConcatenateCoreRebusHeaders(Dictionary<string, string> headers)
+        {
+            var sb = new StringBuilder();
+            var keys = AllCoreMessageKeys();
+            keys.ForEach(key =>
+            {
+                if (headers.ContainsKey(key))
+                {
+                    sb.Append($"{headers[key]}||");
+                }
+            });
+
+            return new MessageAttributeValue()
+            {
+                StringValue = sb.ToString()
+            };
         }
 
         readonly ConcurrentDictionary<string, string> _queueUrls = new ConcurrentDictionary<string, string>();
@@ -497,6 +519,30 @@ namespace Rebus.AmazonSQS
             {
                 client.DeleteQueueAsync(_queueUrl);
             }
+        }
+
+        public IEnumerable<string> AllCoreMessageKeys()
+        {
+            return new List<string>()
+            {
+                Headers.MessageId,
+                Headers.Type,
+                Headers.CorrelationId,
+                Headers.CorrelationSequence,
+                Headers.ReturnAddress,
+                Headers.ContentType,
+                Headers.ContentEncoding,
+                Headers.ErrorDetails,
+                Headers.SourceQueue,
+                Headers.DeferredUntil,
+                Headers.DeferredRecipient,
+                Headers.TimeToBeReceived,
+                Headers.Express,
+                Headers.SentTime,
+                Headers.Intent,
+                Headers.IntentOptions.PointToPoint,
+                Headers.IntentOptions.PublishSubscribe
+            };
         }
     }
 }

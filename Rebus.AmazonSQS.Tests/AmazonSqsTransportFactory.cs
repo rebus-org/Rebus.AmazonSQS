@@ -24,23 +24,27 @@ namespace Rebus.AmazonSQS.Tests
         private static string GetFilePath()
         {
 #if NET45
-            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "sqs_connectionstring.txt");
+            var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            
 #elif NETSTANDARD1_6
-            return Path.Combine(AppContext.BaseDirectory, "..", "..", "sqs_connectionstring.txt");
+            var baseDirectory = AppContext.BaseDirectory;
 #endif
+            var indexOfBin = baseDirectory.LastIndexOf("bin", StringComparison.OrdinalIgnoreCase);
+            var connectionStringFileDirectory = baseDirectory.Substring(0, (indexOfBin > 0) ? indexOfBin : baseDirectory.Length);
+            return Path.Combine(connectionStringFileDirectory, "sqs_connectionstring.txt");
         }
 
-        public ITransport Create(string inputQueueAddress, TimeSpan peeklockDuration)
+        public ITransport Create(string inputQueueAddress, TimeSpan peeklockDuration, bool collapseCoreHeaders = false)
         {
             if (inputQueueAddress == null)
             {
-                return CreateTransport(inputQueueAddress, peeklockDuration);
+                return CreateTransport(inputQueueAddress, peeklockDuration, collapseCoreHeaders);
             }
 
-            return _queuesToDelete.GetOrAdd(inputQueueAddress, () => CreateTransport(inputQueueAddress, peeklockDuration));
+            return _queuesToDelete.GetOrAdd(inputQueueAddress, () => CreateTransport(inputQueueAddress, peeklockDuration, collapseCoreHeaders));
         }
 
-        public static AmazonSqsTransport CreateTransport(string inputQueueAddress, TimeSpan peeklockDuration)
+        public static AmazonSqsTransport CreateTransport(string inputQueueAddress, TimeSpan peeklockDuration, bool collapseCoreHeaders = false)
         {
             var amazonSqsConfig = new AmazonSQSConfig
             {
@@ -51,7 +55,8 @@ namespace Rebus.AmazonSQS.Tests
             var transport = new AmazonSqsTransport(inputQueueAddress, ConnectionInfo.AccessKeyId, ConnectionInfo.SecretAccessKey,
                 amazonSqsConfig,
                 consoleLoggerFactory,
-                new TplAsyncTaskFactory(consoleLoggerFactory));
+                new TplAsyncTaskFactory(consoleLoggerFactory),
+                collapseCoreHeaders);
 
             transport.Initialize(peeklockDuration);
             transport.Purge();
@@ -66,6 +71,11 @@ namespace Rebus.AmazonSQS.Tests
         public ITransport Create(string inputQueueAddress)
         {
             return Create(inputQueueAddress, TimeSpan.FromSeconds(30));
+        }
+
+        public ITransport Create(string inputQueueAddress, bool collapseCoreHeaders)
+        {
+            return Create(inputQueueAddress, TimeSpan.FromSeconds(30), collapseCoreHeaders);
         }
 
 

@@ -30,10 +30,12 @@ namespace Rebus.AmazonSQS
     {
         const string ClientContextKey = "SQS_Client";
         const string OutgoingMessagesItemsKey = "SQS_OutgoingMessages";
+        const string CollapsedHeaderKey = "rbs2-msg-headers";
 
         readonly AWSCredentials _credentials;
         readonly AmazonSQSConfig _amazonSqsConfig;
         readonly IAsyncTaskFactory _asyncTaskFactory;
+        readonly bool _collapseCoreHeaders;
         readonly ILog _log;
 
         TimeSpan _peekLockDuration = TimeSpan.FromMinutes(5);
@@ -43,15 +45,15 @@ namespace Rebus.AmazonSQS
         /// <summary>
         /// Constructs the transport with the specified settings
         /// </summary>
-        public AmazonSqsTransport(string inputQueueAddress, string accessKeyId, string secretAccessKey, AmazonSQSConfig amazonSqsConfig, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory)
-            : this(inputQueueAddress, Credentials(accessKeyId, secretAccessKey), amazonSqsConfig, rebusLoggerFactory, asyncTaskFactory)
+        public AmazonSqsTransport(string inputQueueAddress, string accessKeyId, string secretAccessKey, AmazonSQSConfig amazonSqsConfig, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory, bool collapseCoreHeaders = false)
+            : this(inputQueueAddress, Credentials(accessKeyId, secretAccessKey), amazonSqsConfig, rebusLoggerFactory, asyncTaskFactory, collapseCoreHeaders)
         {
         }
 
         /// <summary>
         /// Constructs the transport with the specified settings
         /// </summary>
-        public AmazonSqsTransport(string inputQueueAddress, AWSCredentials credentials, AmazonSQSConfig amazonSqsConfig, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory)
+        public AmazonSqsTransport(string inputQueueAddress, AWSCredentials credentials, AmazonSQSConfig amazonSqsConfig, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory, bool collapseCoreHeaders = false)
         {
             if (credentials == null) throw new ArgumentNullException(nameof(credentials));
             if (amazonSqsConfig == null) throw new ArgumentNullException(nameof(amazonSqsConfig));
@@ -75,6 +77,7 @@ namespace Rebus.AmazonSQS
             _credentials = credentials;
             _amazonSqsConfig = amazonSqsConfig;
             _asyncTaskFactory = asyncTaskFactory;
+            _collapseCoreHeaders = collapseCoreHeaders;
         }
 
         private static AWSCredentials Credentials(string accessKeyId, string secretAccessKey)
@@ -432,9 +435,33 @@ namespace Rebus.AmazonSQS
         TransportMessage GetTransportMessage(Message message)
         {
             var headers = message.MessageAttributes.ToDictionary(kv => kv.Key, kv => kv.Value.StringValue);
-
+            if (headers.ContainsKey(CollapsedHeaderKey))
+            {
+                var explodedHeaders = ExplodeHeaders(headers[CollapsedHeaderKey]);
+                foreach (var explodedHeader in explodedHeaders)
+                {
+                    headers.Add(explodedHeader.Key, explodedHeader.Value);
+                }
+            }            
             return new TransportMessage(headers, GetBodyBytes(message.Body));
-
+        }
+        
+        private Dictionary<string, string> ExplodeHeaders(string collapsedHeaders)
+        {
+            var explodedHeaders = new Dictionary<string, string>();
+            if (!string.IsNullOrWhiteSpace(collapsedHeaders))
+            {
+                var splitHeaders = collapsedHeaders.Split(new [] {"||"}, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var header in splitHeaders)
+                {
+                    var keyAndValue = header.Split(new [] { "::" }, StringSplitOptions.RemoveEmptyEntries);
+                    if (keyAndValue.Length == 2)
+                    {
+                        explodedHeaders.Add(keyAndValue.First(), keyAndValue.Last());
+                    }
+                }
+            }
+            return explodedHeaders;
         }
 
         static string GetBody(byte[] bodyBytes)
@@ -449,29 +476,45 @@ namespace Rebus.AmazonSQS
 
         Dictionary<string, MessageAttributeValue> CreateAttributesFromHeaders(Dictionary<string, string> headers)
         {
-            Dictionary<string, MessageAttributeValue> attributes = new Dictionary<string, MessageAttributeValue>();
-            attributes.Add("Rebus.Messages.Headers", ConcatenateCoreRebusHeaders(headers));
+            var attributes = new Dictionary<string, MessageAttributeValue>();
 
-            return headers.ToDictionary(key => key.Key,
-                                        value => new MessageAttributeValue { DataType = "String", StringValue = value.Value });
+            foreach (var header in headers)
+            {
+                if (_collapseCoreHeaders && IsCoreHeader(header.Key))
+                {
+                    attributes[CollapsedHeaderKey] =
+                        AppendHeader(
+                            attributes.ContainsKey(CollapsedHeaderKey) ? attributes[CollapsedHeaderKey] : null,
+                            headers,
+                            header.Key);
+                }
+                else
+                {
+                    attributes.Add(header.Key, new MessageAttributeValue { DataType = "String", StringValue = header.Value });
+                }
+            }
+
+            return attributes;
         }
 
-        private MessageAttributeValue ConcatenateCoreRebusHeaders(Dictionary<string, string> headers)
+        private bool IsCoreHeader(string key)
         {
-            var sb = new StringBuilder();
-            var keys = AllCoreMessageKeys();
-            keys.ForEach(key =>
-            {
-                if (headers.ContainsKey(key))
-                {
-                    sb.Append($"{headers[key]}||");
-                }
-            });
+            return AllCoreMessageKeys().Contains(key);
+        }
 
-            return new MessageAttributeValue()
+        private MessageAttributeValue AppendHeader(MessageAttributeValue msgAttributeValue, Dictionary<string, string> headers, string headerKey)
+        {
+            if (headers.ContainsKey(headerKey))
             {
-                StringValue = sb.ToString()
-            };
+                return new MessageAttributeValue()
+                {
+                    DataType = "String",
+                    StringValue = (msgAttributeValue == null) 
+                        ? $"{headerKey}::{headers[headerKey]}" 
+                        : $"{msgAttributeValue.StringValue}||{headerKey}::{headers[headerKey]}"
+                }; 
+            }
+            return null;
         }
 
         readonly ConcurrentDictionary<string, string> _queueUrls = new ConcurrentDictionary<string, string>();

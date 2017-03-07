@@ -35,7 +35,7 @@ namespace Rebus.AmazonSQS
         readonly AWSCredentials _credentials;
         readonly AmazonSQSConfig _amazonSqsConfig;
         readonly IAsyncTaskFactory _asyncTaskFactory;
-        readonly bool _collapseCoreHeaders;
+        readonly AmazonSQSTransportOptions _transportOptions;
         readonly ILog _log;
 
         TimeSpan _peekLockDuration = TimeSpan.FromMinutes(5);
@@ -45,15 +45,15 @@ namespace Rebus.AmazonSQS
         /// <summary>
         /// Constructs the transport with the specified settings
         /// </summary>
-        public AmazonSqsTransport(string inputQueueAddress, string accessKeyId, string secretAccessKey, AmazonSQSConfig amazonSqsConfig, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory, bool collapseCoreHeaders = false)
-            : this(inputQueueAddress, Credentials(accessKeyId, secretAccessKey), amazonSqsConfig, rebusLoggerFactory, asyncTaskFactory, collapseCoreHeaders)
+        public AmazonSqsTransport(string inputQueueAddress, string accessKeyId, string secretAccessKey, AmazonSQSConfig amazonSqsConfig, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory, AmazonSQSTransportOptions options = null)
+            : this(inputQueueAddress, Credentials(accessKeyId, secretAccessKey), amazonSqsConfig, rebusLoggerFactory, asyncTaskFactory, options)
         {
         }
 
         /// <summary>
         /// Constructs the transport with the specified settings
         /// </summary>
-        public AmazonSqsTransport(string inputQueueAddress, AWSCredentials credentials, AmazonSQSConfig amazonSqsConfig, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory, bool collapseCoreHeaders = false)
+        public AmazonSqsTransport(string inputQueueAddress, AWSCredentials credentials, AmazonSQSConfig amazonSqsConfig, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory, AmazonSQSTransportOptions options = null)
         {
             if (credentials == null) throw new ArgumentNullException(nameof(credentials));
             if (amazonSqsConfig == null) throw new ArgumentNullException(nameof(amazonSqsConfig));
@@ -77,7 +77,7 @@ namespace Rebus.AmazonSQS
             _credentials = credentials;
             _amazonSqsConfig = amazonSqsConfig;
             _asyncTaskFactory = asyncTaskFactory;
-            _collapseCoreHeaders = collapseCoreHeaders;
+            _transportOptions = options ?? new AmazonSQSTransportOptions();
         }
 
         private static AWSCredentials Credentials(string accessKeyId, string secretAccessKey)
@@ -312,7 +312,7 @@ namespace Rebus.AmazonSQS
             var request = new ReceiveMessageRequest(_queueUrl)
             {
                 MaxNumberOfMessages = 1,
-                WaitTimeSeconds = 1,
+                WaitTimeSeconds = _transportOptions.ReceiveWaitTimeSeconds,
                 AttributeNames = new List<string>(new[] { "All" }),
                 MessageAttributeNames = new List<string>(new[] { "All" })
             };
@@ -480,7 +480,7 @@ namespace Rebus.AmazonSQS
 
             foreach (var header in headers)
             {
-                if (_collapseCoreHeaders && IsCoreHeader(header.Key))
+                if (_transportOptions.CollapseCoreHeaders && IsCoreHeader(header.Key))
                 {
                     attributes[CollapsedHeaderKey] =
                         AppendHeader(
@@ -564,7 +564,7 @@ namespace Rebus.AmazonSQS
             }
         }
 
-        public IEnumerable<string> AllCoreMessageKeys()
+        private IEnumerable<string> AllCoreMessageKeys()
         {
             return new List<string>()
             {

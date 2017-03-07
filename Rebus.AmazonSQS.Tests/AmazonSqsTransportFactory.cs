@@ -34,17 +34,17 @@ namespace Rebus.AmazonSQS.Tests
             return Path.Combine(connectionStringFileDirectory, "sqs_connectionstring.txt");
         }
 
-        public ITransport Create(string inputQueueAddress, TimeSpan peeklockDuration, bool collapseCoreHeaders = false)
+        public ITransport Create(string inputQueueAddress, TimeSpan peeklockDuration, AmazonSQSTransportOptions options = null)
         {
             if (inputQueueAddress == null)
             {
-                return CreateTransport(inputQueueAddress, peeklockDuration, collapseCoreHeaders);
+                return CreateTransport(inputQueueAddress, peeklockDuration, options);
             }
 
-            return _queuesToDelete.GetOrAdd(inputQueueAddress, () => CreateTransport(inputQueueAddress, peeklockDuration, collapseCoreHeaders));
+            return _queuesToDelete.GetOrAdd(inputQueueAddress, () => CreateTransport(inputQueueAddress, peeklockDuration, options));
         }
 
-        public static AmazonSqsTransport CreateTransport(string inputQueueAddress, TimeSpan peeklockDuration, bool collapseCoreHeaders = false)
+        public static AmazonSqsTransport CreateTransport(string inputQueueAddress, TimeSpan peeklockDuration, AmazonSQSTransportOptions options = null)
         {
             var amazonSqsConfig = new AmazonSQSConfig
             {
@@ -56,7 +56,7 @@ namespace Rebus.AmazonSQS.Tests
                 amazonSqsConfig,
                 consoleLoggerFactory,
                 new TplAsyncTaskFactory(consoleLoggerFactory),
-                collapseCoreHeaders);
+                options);
 
             transport.Initialize(peeklockDuration);
             transport.Purge();
@@ -75,7 +75,10 @@ namespace Rebus.AmazonSQS.Tests
 
         public ITransport Create(string inputQueueAddress, bool collapseCoreHeaders)
         {
-            return Create(inputQueueAddress, TimeSpan.FromSeconds(30), collapseCoreHeaders);
+            return Create(
+                inputQueueAddress, 
+                TimeSpan.FromSeconds(30), 
+                new AmazonSQSTransportOptions { CollapseCoreHeaders = collapseCoreHeaders });
         }
 
 

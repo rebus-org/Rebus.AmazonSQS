@@ -39,4 +39,9 @@
     <PackageReference Include="rebus" Version="4.0.0-b05" />
     <PackageReference Include="rebus.tests.contracts" Version="4.0.0-b04" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="sqs_connectionstring.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

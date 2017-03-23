@@ -7,6 +7,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.Runtime;
+using Amazon.Runtime.Internal.Util;
 using Amazon.SQS;
 using Amazon.SQS.Model;
 using Rebus.Bus;
@@ -127,7 +128,9 @@ namespace Rebus.AmazonSQS
             using (var client = new AmazonSQSClient(_credentials, _amazonSqsConfig))
             {
                 var queueName = GetQueueNameFromAddress(address);
-                var response = client.CreateQueue(new CreateQueueRequest(queueName));
+                var task = client.CreateQueueAsync(new CreateQueueRequest(queueName));
+                AsyncHelpers.RunSync(() => task);
+                var response = task.Result;
 
                 if (response.HttpStatusCode != HttpStatusCode.OK)
                 {
@@ -153,16 +156,22 @@ namespace Rebus.AmazonSQS
 
                     while (true)
                     {
-                        var response = client.ReceiveMessage(new ReceiveMessageRequest(_queueUrl)
+                        var receiveTask = client.ReceiveMessageAsync(new ReceiveMessageRequest(_queueUrl)
                         {
                             MaxNumberOfMessages = 10
                         });
+                        AsyncHelpers.RunSync(() => receiveTask);
+                        var response = receiveTask.Result;
 
                         if (!response.Messages.Any()) break;
 
-                        var deleteResponse = client.DeleteMessageBatch(_queueUrl, response.Messages
+                        var deleteTask = client.DeleteMessageBatchAsync(_queueUrl, response.Messages
                             .Select(m => new DeleteMessageBatchRequestEntry(m.MessageId, m.ReceiptHandle))
                             .ToList());
+
+                        AsyncHelpers.RunSync(() => deleteTask);
+
+                        var deleteResponse = deleteTask.Result;
 
                         if (deleteResponse.Failed.Any())
                         {
@@ -333,7 +342,7 @@ namespace Rebus.AmazonSQS
             {
                 renewalTask.Dispose();
 
-                client.ChangeMessageVisibility(_queueUrl, message.ReceiptHandle, 0);
+                Task.Run(() => client.ChangeMessageVisibilityAsync(_queueUrl, message.ReceiptHandle, 0, cancellationToken), cancellationToken).Wait(cancellationToken);
             });
 
             if (MessageIsExpired(message))
@@ -432,7 +441,6 @@ namespace Rebus.AmazonSQS
             var headers = message.MessageAttributes.ToDictionary(kv => kv.Key, kv => kv.Value.StringValue);
 
             return new TransportMessage(headers, GetBodyBytes(message.Body));
-
         }
 
         static string GetBody(byte[] bodyBytes)
@@ -465,14 +473,18 @@ namespace Rebus.AmazonSQS
                 _log.Info("Getting queueUrl from SQS service by name:{0}", address);
 
                 var client = GetClientFromTransactionContext(transactionContext);
-                var urlResponse = client.GetQueueUrl(address);
+                var task = client.GetQueueUrlAsync(address);
+
+                AsyncHelpers.RunSync(() => task);
+
+                var urlResponse = task.Result;
 
                 if (urlResponse.HttpStatusCode == HttpStatusCode.OK)
                 {
                     return urlResponse.QueueUrl;
                 }
 
-                throw new ApplicationException($"could not find Url for address: {address} - got errorcode: {urlResponse.HttpStatusCode}");
+                throw new RebusApplicationException($"could not find Url for address: {address} - got errorcode: {urlResponse.HttpStatusCode}");
             });
 
             return url;
@@ -494,7 +506,7 @@ namespace Rebus.AmazonSQS
         {
             using (var client = new AmazonSQSClient(_credentials, _amazonSqsConfig))
             {
-                client.DeleteQueue(_queueUrl);
+                AsyncHelpers.RunSync(() => client.DeleteQueueAsync(_queueUrl));
             }
         }
     }

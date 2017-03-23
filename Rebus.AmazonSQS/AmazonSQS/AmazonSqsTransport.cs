@@ -7,7 +7,6 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.Runtime;
-using Amazon.Runtime.Internal.Util;
 using Amazon.SQS;
 using Amazon.SQS.Model;
 using Rebus.Bus;
@@ -76,7 +75,7 @@ namespace Rebus.AmazonSQS
             _asyncTaskFactory = asyncTaskFactory;
         }
 
-        private static AWSCredentials Credentials(string accessKeyId, string secretAccessKey)
+        static AWSCredentials Credentials(string accessKeyId, string secretAccessKey)
         {
             if (accessKeyId == null) throw new ArgumentNullException(nameof(accessKeyId));
             if (secretAccessKey == null) throw new ArgumentNullException(nameof(secretAccessKey));
@@ -95,6 +94,9 @@ namespace Rebus.AmazonSQS
             Initialize();
         }
 
+        /// <summary>
+        /// Initializes the transport by creating the input queue
+        /// </summary>
         public void Initialize()
         {
             if (Address == null) return;
@@ -121,6 +123,9 @@ namespace Rebus.AmazonSQS
             }
         }
 
+        /// <summary>
+        /// Creates the queue with the given name
+        /// </summary>
         public void CreateQueue(string address)
         {
             _log.Info("Creating a new sqs queue:  with name: {0} on region: {1}", address, _amazonSqsConfig.RegionEndpoint);
@@ -140,7 +145,7 @@ namespace Rebus.AmazonSQS
         }
 
         /// <summary>
-        /// Deletes all messages from the input queue
+        /// Deletes all messages from the input queue (which is done by receiving them in batches and deleting them, as long as it takes)
         /// </summary>
         public void Purge()
         {
@@ -211,6 +216,7 @@ namespace Rebus.AmazonSQS
             }
         }
 
+        /// <inheritdoc />
         public async Task Send(string destinationAddress, TransportMessage message, ITransactionContext context)
         {
             if (destinationAddress == null) throw new ArgumentNullException(nameof(destinationAddress));
@@ -500,8 +506,14 @@ namespace Rebus.AmazonSQS
             return queueFullAddress.Segments[queueFullAddress.Segments.Length - 1];
         }
 
+        /// <summary>
+        /// Gets the input queue name
+        /// </summary>
         public string Address { get; }
 
+        /// <summary>
+        /// Deletes the transport's input queue
+        /// </summary>
         public void DeleteQueue()
         {
             using (var client = new AmazonSQSClient(_credentials, _amazonSqsConfig))

@@ -1,4 +1,3 @@
-
 using System;
 using System.Linq;
 
@@ -18,12 +17,14 @@ namespace Rebus.AmazonSQS.Tests
         internal static ConnectionInfo CreateFromString(string textString)
         {
             Console.WriteLine("Parsing connectionInfo from string: {0}", textString);
-
+            
             var keyValuePairs = textString.Split("; ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-
+            
             Console.WriteLine(@"Found {0} pairs. Expected 3 on the form
-                                AccessKeyId=blabla; SecretAccessKey=blablalba; RegionEndpoint=something
-                                ", keyValuePairs.Length);
+
+AccessKeyId=blabla; SecretAccessKey=blablalba; RegionEndpoint=something
+
+", keyValuePairs.Length);
             try
             {
                 var keysAndValues = keyValuePairs.ToDictionary((kv) => kv.Split('=')[0], (kv) => kv.Split('=')[1]);
@@ -44,5 +45,6 @@ namespace Rebus.AmazonSQS.Tests
                 throw;
             }
         }
+
     }
 }

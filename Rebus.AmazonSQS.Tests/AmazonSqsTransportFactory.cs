@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Amazon;
 using Amazon.SQS;
 using Rebus.Exceptions;
@@ -28,6 +29,7 @@ namespace Rebus.AmazonSQS.Tests
 #elif NETSTANDARD1_6
             var baseDirectory = AppContext.BaseDirectory;
 #endif
+            // added because of test run issues on MacOS
             var indexOfBin = baseDirectory.LastIndexOf("bin", StringComparison.OrdinalIgnoreCase);
             var connectionStringFileDirectory = baseDirectory.Substring(0, (indexOfBin > 0) ? indexOfBin : baseDirectory.Length);
             return Path.Combine(connectionStringFileDirectory, "sqs_connectionstring.txt");

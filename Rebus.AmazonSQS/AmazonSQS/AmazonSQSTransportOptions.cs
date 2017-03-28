@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Rebus.AmazonSQS
+﻿namespace Rebus.AmazonSQS
 {
+    /// <summary>
+    /// Holds all of the exposed options which can be applied when using the SQS transport.
+    /// </summary>
     public class AmazonSQSTransportOptions
     {
         /// <summary>
@@ -23,6 +20,9 @@ namespace Rebus.AmazonSQS
         /// </summary>
         public int ReceiveWaitTimeSeconds { get; set; }
 
+        /// <summary>
+        /// Default constructor of the exposed SQS transport options.
+        /// </summary>
         public AmazonSQSTransportOptions()
         {
             CollapseCoreHeaders = false;

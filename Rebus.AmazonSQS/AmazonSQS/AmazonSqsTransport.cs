@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.Runtime;
@@ -189,8 +188,7 @@ namespace Rebus.AmazonSQS
                                 deleteResponse.Failed.Select(f => $"{f.Message} ({f.Id})"));
 
                             throw new RebusApplicationException(
-                                $@"Error {deleteResponse.HttpStatusCode} while purging: 
-{errors}");
+                                $@"Error {deleteResponse.HttpStatusCode} while purging: {errors}");
                         }
                     }
 

@@ -22,8 +22,6 @@ sqs_connectionstring.txt
 _NCrunch_*
 *.user
 *.backup
-**/*.lock.json
-**/*.orig
 
 # MS Guideline
 **/packages/*

@@ -1,2 +1,14 @@
+image: Visual Studio 2017
+
+shallow_clone: true
+
+cache:
+  - packages -> **\packages.config
+  - '%LocalAppData%\NuGet\Cache'
+
 before_build:
-  - nuget restore
+  - appveyor-retry dotnet restore -v Minimal
+
+build_script:
+  - dotnet build Rebus.AmazonSQS -c Release 
+  - dotnet build Rebus.AmazonSQS.Tests -c Release 

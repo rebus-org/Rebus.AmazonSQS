@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using Amazon;
 using Amazon.SQS;
 using Rebus.Exceptions;
@@ -130,13 +129,13 @@ namespace Rebus.AmazonSQS.Tests
             Console.WriteLine("Using Amazon SQS connectionInfo string from file {0}", filePath);
             return ConnectionInfo.CreateFromString(File.ReadAllText(filePath));
         }
+
         static ConnectionInfo Throw(string message)
         {
             throw new RebusConfigurationException(message);
         }
-
-
     }
+    
     internal class ConnectionInfo
     {
         internal string AccessKeyId;
@@ -177,6 +176,5 @@ AccessKeyId=blabla; SecretAccessKey=blablalba; RegionEndpoint=something
                 throw;
             }
         }
-
     }
 }

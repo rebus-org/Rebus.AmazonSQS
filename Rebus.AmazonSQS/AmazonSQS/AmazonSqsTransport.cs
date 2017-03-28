@@ -80,7 +80,7 @@ namespace Rebus.AmazonSQS
             _transportOptions = options ?? new AmazonSQSTransportOptions();
         }
 
-        private static AWSCredentials Credentials(string accessKeyId, string secretAccessKey)
+        static AWSCredentials Credentials(string accessKeyId, string secretAccessKey)
         {
             if (accessKeyId == null) throw new ArgumentNullException(nameof(accessKeyId));
             if (secretAccessKey == null) throw new ArgumentNullException(nameof(secretAccessKey));
@@ -99,6 +99,9 @@ namespace Rebus.AmazonSQS
             Initialize();
         }
 
+        /// <summary>
+        /// Initializes the transport by creating the input queue
+        /// </summary>
         public void Initialize()
         {
             if (Address == null) return;
@@ -125,6 +128,9 @@ namespace Rebus.AmazonSQS
             }
         }
 
+        /// <summary>
+        /// Creates the queue with the given name
+        /// </summary>
         public void CreateQueue(string address)
         {
             _log.Info("Creating a new sqs queue:  with name: {0} on region: {1}", address, _amazonSqsConfig.RegionEndpoint);
@@ -132,8 +138,10 @@ namespace Rebus.AmazonSQS
             using (var client = new AmazonSQSClient(_credentials, _amazonSqsConfig))
             {
                 var queueName = GetQueueNameFromAddress(address);
-                var response = client.CreateQueueAsync(new CreateQueueRequest(queueName)).Result;
-                
+                var task = client.CreateQueueAsync(new CreateQueueRequest(queueName));
+                AsyncHelpers.RunSync(() => task);
+                var response = task.Result;
+
                 if (response.HttpStatusCode != HttpStatusCode.OK)
                 {
                     throw new Exception($"Could not create queue '{queueName}' - got HTTP {response.HttpStatusCode}");
@@ -142,7 +150,7 @@ namespace Rebus.AmazonSQS
         }
 
         /// <summary>
-        /// Deletes all messages from the input queue
+        /// Deletes all messages from the input queue (which is done by receiving them in batches and deleting them, as long as it takes)
         /// </summary>
         public async void Purge()
         {
@@ -158,16 +166,22 @@ namespace Rebus.AmazonSQS
 
                     while (true)
                     {
-                        var response = await client.ReceiveMessageAsync(new ReceiveMessageRequest(_queueUrl)
+                        var receiveTask = client.ReceiveMessageAsync(new ReceiveMessageRequest(_queueUrl)
                         {
                             MaxNumberOfMessages = 10
                         });
+                        AsyncHelpers.RunSync(() => receiveTask);
+                        var response = receiveTask.Result;
 
                         if (!response.Messages.Any()) break;
 
-                        var deleteResponse = await client.DeleteMessageBatchAsync(_queueUrl, response.Messages
+                        var deleteTask = client.DeleteMessageBatchAsync(_queueUrl, response.Messages
                             .Select(m => new DeleteMessageBatchRequestEntry(m.MessageId, m.ReceiptHandle))
                             .ToList());
+
+                        AsyncHelpers.RunSync(() => deleteTask);
+
+                        var deleteResponse = deleteTask.Result;
 
                         if (deleteResponse.Failed.Any())
                         {
@@ -207,6 +221,7 @@ namespace Rebus.AmazonSQS
             }
         }
 
+        /// <inheritdoc />
         public async Task Send(string destinationAddress, TransportMessage message, ITransactionContext context)
         {
             if (destinationAddress == null) throw new ArgumentNullException(nameof(destinationAddress));
@@ -337,8 +352,7 @@ namespace Rebus.AmazonSQS
             context.OnAborted(() =>
             {
                 renewalTask.Dispose();
-
-                client.ChangeMessageVisibilityAsync(_queueUrl, message.ReceiptHandle, 0);
+                Task.Run(() => client.ChangeMessageVisibilityAsync(_queueUrl, message.ReceiptHandle, 0, cancellationToken), cancellationToken).Wait(cancellationToken);
             });
 
             if (MessageIsExpired(message))
@@ -531,14 +545,18 @@ namespace Rebus.AmazonSQS
                 _log.Info("Getting queueUrl from SQS service by name:{0}", address);
 
                 var client = GetClientFromTransactionContext(transactionContext);
-                var urlResponse = client.GetQueueUrlAsync(address).Result;
+                var task = client.GetQueueUrlAsync(address);
+
+                AsyncHelpers.RunSync(() => task);
+
+                var urlResponse = task.Result;
 
                 if (urlResponse.HttpStatusCode == HttpStatusCode.OK)
                 {
                     return urlResponse.QueueUrl;
                 }
 
-                throw new Exception($"could not find Url for address: {address} - got errorcode: {urlResponse.HttpStatusCode}");
+                throw new RebusApplicationException($"could not find Url for address: {address} - got errorcode: {urlResponse.HttpStatusCode}");
             });
 
             return url;
@@ -554,13 +572,19 @@ namespace Rebus.AmazonSQS
             return queueFullAddress.Segments[queueFullAddress.Segments.Length - 1];
         }
 
+        /// <summary>
+        /// Gets the input queue name
+        /// </summary>
         public string Address { get; }
 
+        /// <summary>
+        /// Deletes the transport's input queue
+        /// </summary>
         public void DeleteQueue()
         {
             using (var client = new AmazonSQSClient(_credentials, _amazonSqsConfig))
             {
-                client.DeleteQueueAsync(_queueUrl);
+                AsyncHelpers.RunSync(() => client.DeleteQueueAsync(_queueUrl));
             }
         }
 

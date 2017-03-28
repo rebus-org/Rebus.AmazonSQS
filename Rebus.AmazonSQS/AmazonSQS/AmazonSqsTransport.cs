@@ -151,7 +151,7 @@ namespace Rebus.AmazonSQS
         /// <summary>
         /// Deletes all messages from the input queue (which is done by receiving them in batches and deleting them, as long as it takes)
         /// </summary>
-        public async void Purge()
+        public void Purge()
         {
             if (Address == null) return;
 

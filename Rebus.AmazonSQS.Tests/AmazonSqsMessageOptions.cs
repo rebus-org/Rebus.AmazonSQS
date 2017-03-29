@@ -23,10 +23,10 @@ namespace Rebus.AmazonSQS.Tests
         {
             //arrange
             var inputqueueName = TestConfig.GetName($"inputQueue-{DateTime.Now.Ticks}");
-            var inputQueue = _transportFactory.Create(inputqueueName, true);
+            var inputQueue = _transportFactory.Create(inputqueueName);
 
-            var inputqueueName2 = TestConfig.GetName($"outputQueue-{DateTime.Now.Ticks}");
-            var outputQueue = _transportFactory.Create(inputqueueName2, true);
+            var outputqueueName = TestConfig.GetName($"outputQueue-{DateTime.Now.Ticks}");
+            var outputQueue = _transportFactory.Create(outputqueueName);
 
             await WithContext(async context =>
             {

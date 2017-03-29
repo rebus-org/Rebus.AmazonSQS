@@ -73,15 +73,6 @@ namespace Rebus.AmazonSQS.Tests
             return Create(inputQueueAddress, TimeSpan.FromSeconds(30));
         }
 
-        public ITransport Create(string inputQueueAddress, bool collapseCoreHeaders)
-        {
-            return Create(
-                inputQueueAddress, 
-                TimeSpan.FromSeconds(30), 
-                new AmazonSQSTransportOptions { CollapseCoreHeaders = collapseCoreHeaders });
-        }
-
-
         readonly Dictionary<string, AmazonSqsTransport> _queuesToDelete = new Dictionary<string, AmazonSqsTransport>();
 
 

@@ -16,7 +16,6 @@ namespace Rebus.AmazonSQS.Tests
             var peeklockDuration = TimeSpan.FromSeconds(3);
 
             var transportFactory = new AmazonSqsTransportFactory();
-            
             var inputqueueName = TestConfig.GetName("inputQueue");
             var inputQueue = transportFactory.Create(inputqueueName, peeklockDuration);
 

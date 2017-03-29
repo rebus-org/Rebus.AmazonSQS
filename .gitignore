@@ -27,3 +27,6 @@ _NCrunch_*
 **/packages/*
 !**/packages/build/
 AssemblyInfo_Patch.cs
+
+# JetBrains Rider
+.idea/

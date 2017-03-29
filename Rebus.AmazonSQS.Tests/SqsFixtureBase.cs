@@ -39,7 +39,8 @@ namespace Rebus.AmazonSQS.Tests
         {
             var headers = new Dictionary<string, string>
                           {
-                              {Headers.MessageId, Guid.NewGuid().ToString()}
+                              {Headers.MessageId, Guid.NewGuid().ToString()},
+                              {Headers.CorrelationId, Guid.NewGuid().ToString()}
                           };
             var body = _defaultEncoding.GetBytes(stringBody);
             return new TransportMessage(headers, body);

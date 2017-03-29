@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Amazon.Runtime;
 using Amazon.SQS;
 using Amazon.SQS.Model;
+using Newtonsoft.Json;
 using Rebus.Bus;
 using Rebus.Exceptions;
 using Rebus.Extensions;
@@ -33,6 +34,8 @@ namespace Rebus.AmazonSQS
         readonly AWSCredentials _credentials;
         readonly AmazonSQSConfig _amazonSqsConfig;
         readonly IAsyncTaskFactory _asyncTaskFactory;
+        readonly AmazonSQSTransportOptions _transportOptions;
+        readonly AmazonSqsTransportMessageSerializer _serializer;
         readonly ILog _log;
 
         TimeSpan _peekLockDuration = TimeSpan.FromMinutes(5);
@@ -42,21 +45,22 @@ namespace Rebus.AmazonSQS
         /// <summary>
         /// Constructs the transport with the specified settings
         /// </summary>
-        public AmazonSqsTransport(string inputQueueAddress, string accessKeyId, string secretAccessKey, AmazonSQSConfig amazonSqsConfig, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory)
-            : this(inputQueueAddress, Credentials(accessKeyId, secretAccessKey), amazonSqsConfig, rebusLoggerFactory, asyncTaskFactory)
+        public AmazonSqsTransport(string inputQueueAddress, string accessKeyId, string secretAccessKey, AmazonSQSConfig amazonSqsConfig, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory, AmazonSQSTransportOptions options = null)
+            : this(inputQueueAddress, Credentials(accessKeyId, secretAccessKey), amazonSqsConfig, rebusLoggerFactory, asyncTaskFactory, options)
         {
         }
 
         /// <summary>
         /// Constructs the transport with the specified settings
         /// </summary>
-        public AmazonSqsTransport(string inputQueueAddress, AWSCredentials credentials, AmazonSQSConfig amazonSqsConfig, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory)
+        public AmazonSqsTransport(string inputQueueAddress, AWSCredentials credentials, AmazonSQSConfig amazonSqsConfig, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory, AmazonSQSTransportOptions options = null)
         {
             if (credentials == null) throw new ArgumentNullException(nameof(credentials));
             if (amazonSqsConfig == null) throw new ArgumentNullException(nameof(amazonSqsConfig));
             if (rebusLoggerFactory == null) throw new ArgumentNullException(nameof(rebusLoggerFactory));
 
             Address = inputQueueAddress;
+
 
             _log = rebusLoggerFactory.GetLogger<AmazonSqsTransport>();
 
@@ -73,6 +77,8 @@ namespace Rebus.AmazonSQS
             _credentials = credentials;
             _amazonSqsConfig = amazonSqsConfig;
             _asyncTaskFactory = asyncTaskFactory;
+            _serializer = new AmazonSqsTransportMessageSerializer();
+            _transportOptions = options ?? new AmazonSQSTransportOptions();
         }
 
         static AWSCredentials Credentials(string accessKeyId, string secretAccessKey)
@@ -184,8 +190,7 @@ namespace Rebus.AmazonSQS
                                 deleteResponse.Failed.Select(f => $"{f.Message} ({f.Id})"));
 
                             throw new RebusApplicationException(
-                                $@"Error {deleteResponse.HttpStatusCode} while purging: 
-{errors}");
+                                $@"Error {deleteResponse.HttpStatusCode} while purging: {errors}");
                         }
                     }
 
@@ -259,14 +264,10 @@ namespace Rebus.AmazonSQS
                                 var headers = transportMessage.Headers;
                                 var messageId = headers[Headers.MessageId];
 
-                                var body = GetBody(transportMessage.Body);
-                                var messageAttributes = CreateAttributesFromHeaders(headers);
+                                var sqsMessage = new AmazonSqsTransportMessage(transportMessage.Headers, GetBody(transportMessage.Body));
                                 var delaySeconds = GetDelaySeconds(headers);
 
-                                var entry = new SendMessageBatchRequestEntry(messageId, body)
-                                {
-                                    MessageAttributes = messageAttributes,
-                                };
+                                var entry = new SendMessageBatchRequestEntry(messageId, _serializer.Serialize(sqsMessage));
 
                                 if (delaySeconds != null)
                                 {
@@ -322,7 +323,7 @@ namespace Rebus.AmazonSQS
             var request = new ReceiveMessageRequest(_queueUrl)
             {
                 MaxNumberOfMessages = 1,
-                WaitTimeSeconds = 1,
+                WaitTimeSeconds = _transportOptions.ReceiveWaitTimeSeconds,
                 AttributeNames = new List<string>(new[] { "All" }),
                 MessageAttributeNames = new List<string>(new[] { "All" })
             };
@@ -331,9 +332,9 @@ namespace Rebus.AmazonSQS
 
             if (!response.Messages.Any()) return null;
 
-            var message = response.Messages.First();
+            var sqsMessage = response.Messages.First();
 
-            var renewalTask = CreateRenewalTaskForMessage(message, client);
+            var renewalTask = CreateRenewalTaskForMessage(sqsMessage, client);
 
             context.OnCompleted(async () =>
             {
@@ -341,25 +342,24 @@ namespace Rebus.AmazonSQS
 
                 // if we get this far, we don't want to pass on the cancellation token
                 // ReSharper disable once MethodSupportsCancellation
-                await client.DeleteMessageAsync(new DeleteMessageRequest(_queueUrl, message.ReceiptHandle));
+                await client.DeleteMessageAsync(new DeleteMessageRequest(_queueUrl, sqsMessage.ReceiptHandle));
             });
 
             context.OnAborted(() =>
             {
                 renewalTask.Dispose();
-
-                Task.Run(() => client.ChangeMessageVisibilityAsync(_queueUrl, message.ReceiptHandle, 0, cancellationToken), cancellationToken).Wait(cancellationToken);
+                Task.Run(() => client.ChangeMessageVisibilityAsync(_queueUrl, sqsMessage.ReceiptHandle, 0, cancellationToken), cancellationToken).Wait(cancellationToken);
             });
 
-            if (MessageIsExpired(message))
+            var transportMessage = ExtractTransportMessageFrom(sqsMessage);
+            if (MessageIsExpired(transportMessage, sqsMessage))
             {
                 // if the message is expired , we don't want to pass on the cancellation token
                 // ReSharper disable once MethodSupportsCancellation
-                await client.DeleteMessageAsync(new DeleteMessageRequest(_queueUrl, message.ReceiptHandle));
+                await client.DeleteMessageAsync(new DeleteMessageRequest(_queueUrl, sqsMessage.ReceiptHandle));
                 return null;
             }
             renewalTask.Start();
-            var transportMessage = GetTransportMessage(message);
             return transportMessage;
         }
 
@@ -378,34 +378,32 @@ namespace Rebus.AmazonSQS
                 prettyInsignificant: true);
         }
 
-        static bool MessageIsExpired(Message message)
+        static bool MessageIsExpired(TransportMessage message, Message sqsMessage)
         {
-            MessageAttributeValue value;
-            if (!message.MessageAttributes.TryGetValue(Headers.TimeToBeReceived, out value))
+            string value;
+            if (!message.Headers.TryGetValue(Headers.TimeToBeReceived, out value))
                 return false;
 
-            var timeToBeReceived = TimeSpan.Parse(value.StringValue);
+            var timeToBeReceived = TimeSpan.Parse(value);
 
             if (MessageIsExpiredUsingRebusSentTime(message, timeToBeReceived)) return true;
-            if (MessageIsExpiredUsingNativeSqsSentTimestamp(message, timeToBeReceived)) return true;
+            if (MessageIsExpiredUsingNativeSqsSentTimestamp(sqsMessage, timeToBeReceived)) return true;
 
             return false;
         }
 
-        static bool MessageIsExpiredUsingRebusSentTime(Message message, TimeSpan timeToBeReceived)
+        static bool MessageIsExpiredUsingRebusSentTime(TransportMessage message, TimeSpan timeToBeReceived)
         {
-            MessageAttributeValue rebusUtcTimeSentAttributeValue;
-            if (message.MessageAttributes.TryGetValue(Headers.SentTime, out rebusUtcTimeSentAttributeValue))
+            string rebusUtcTimeSentAttributeValue;
+            if (message.Headers.TryGetValue(Headers.SentTime, out rebusUtcTimeSentAttributeValue))
             {
-                var rebusUtcTimeSent = DateTimeOffset.ParseExact(rebusUtcTimeSentAttributeValue.StringValue, "O", null);
+                var rebusUtcTimeSent = DateTimeOffset.ParseExact(rebusUtcTimeSentAttributeValue, "O", null);
 
                 if (RebusTime.Now.UtcDateTime - rebusUtcTimeSent > timeToBeReceived)
                 {
                     return true;
                 }
-
             }
-
             return false;
 
         }
@@ -442,11 +440,10 @@ namespace Rebus.AmazonSQS
             });
         }
 
-        TransportMessage GetTransportMessage(Message message)
+        TransportMessage ExtractTransportMessageFrom(Message message)
         {
-            var headers = message.MessageAttributes.ToDictionary(kv => kv.Key, kv => kv.Value.StringValue);
-
-            return new TransportMessage(headers, GetBodyBytes(message.Body));
+            var sqsMessage = _serializer.Deserialize(message.Body);
+            return new TransportMessage(sqsMessage.Headers, GetBodyBytes(sqsMessage.Body));
         }
 
         static string GetBody(byte[] bodyBytes)
@@ -457,12 +454,6 @@ namespace Rebus.AmazonSQS
         byte[] GetBodyBytes(string bodyText)
         {
             return Convert.FromBase64String(bodyText);
-        }
-
-        Dictionary<string, MessageAttributeValue> CreateAttributesFromHeaders(Dictionary<string, string> headers)
-        {
-            return headers.ToDictionary(key => key.Key,
-                                        value => new MessageAttributeValue { DataType = "String", StringValue = value.Value });
         }
 
         readonly ConcurrentDictionary<string, string> _queueUrls = new ConcurrentDictionary<string, string>();

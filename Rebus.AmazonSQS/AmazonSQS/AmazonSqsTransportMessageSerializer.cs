@@ -2,7 +2,7 @@
 
 namespace Rebus.AmazonSQS
 {
-    internal class AmazonSqsTransportMessageSerializer
+    class AmazonSqsTransportMessageSerializer
     {
         public string Serialize(AmazonSqsTransportMessage message)
         {

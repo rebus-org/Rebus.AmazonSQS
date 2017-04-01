@@ -29,11 +29,13 @@
 
 * Update to Rebus 3
 
-## 4.0.0-b01
+## 4.0.0-b02
 
 * Update to Rebus 4
 * Add .NET Core support
+* Change message format to break out of SQS's limitation of being able to transfer only 10 headers - thanks [mvandevy]
 
 ---
 
 [MooseMagnet]: https://github.com/MooseMagnet
+[mvandevy]: https://github.com/mvandevy

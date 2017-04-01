@@ -3,10 +3,11 @@ using Newtonsoft.Json;
 
 namespace Rebus.AmazonSQS
 {
-    internal class AmazonSqsTransportMessage
+    class AmazonSqsTransportMessage
     {
         [JsonProperty(PropertyName = "headers")]
         public Dictionary<string, string> Headers { get; set; }
+
         [JsonProperty(PropertyName = "body")]
         public string Body { get; set; }
 

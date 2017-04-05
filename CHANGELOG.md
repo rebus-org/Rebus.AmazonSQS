@@ -29,12 +29,13 @@
 
 * Update to Rebus 3
 
-## 4.0.0-b03
+## 4.0.0-b04
 
 * Update to Rebus 4
 * Add .NET Core support
 * Change message format to break out of SQS's limitation of being able to transfer only 10 headers - thanks [mvandevy]
 * Fix csproj - thanks [robvanpamel]
+* Update deps to b06
 
 ---
 

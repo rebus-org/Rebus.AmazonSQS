@@ -116,9 +116,9 @@ namespace Rebus.AmazonSQS
         {
             try
             {
-                using (new DefaultTransactionContextScope())
+                using (var scope = new RebusTransactionScope())
                 {
-                    var inputQueueUrl = GetDestinationQueueUrlByName(Address, AmbientTransactionContext.Current);
+                    var inputQueueUrl = GetDestinationQueueUrlByName(Address, scope.TransactionContext);
 
                     return inputQueueUrl;
                 }

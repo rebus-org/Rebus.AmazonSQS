@@ -14,13 +14,13 @@ namespace Rebus.AmazonSQS.Tests
 
         protected async Task WithContext(Func<ITransactionContext, Task> contextAction, bool completeTransaction = true)
         {
-            using (var context = new DefaultTransactionContextScope())
+            using (var scope = new RebusTransactionScope())
             {
                 await contextAction(AmbientTransactionContext.Current);
 
                 if (completeTransaction)
                 {
-                    await context.Complete();
+                    await scope.CompleteAsync();
                 }
             }
         }

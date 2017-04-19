@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using Amazon.Runtime;
 using Amazon.SQS;
 using Amazon.SQS.Model;
-using Newtonsoft.Json;
 using Rebus.Bus;
 using Rebus.Exceptions;
 using Rebus.Extensions;

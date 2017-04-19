@@ -29,7 +29,7 @@
 
 * Update to Rebus 3
 
-## 4.0.0-b04
+## 4.0.0-b05
 
 * Update to Rebus 4
 * Add .NET Core support

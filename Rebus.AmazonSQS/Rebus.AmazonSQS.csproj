@@ -48,7 +48,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="awssdk.sqs" Version="3.3.1.10" />
-    <PackageReference Include="Rebus" Version="4.0.0-b10" />
+    <PackageReference Include="Rebus" Version="4.0.0-b11" />
   </ItemGroup>
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
     <Exec Command="$(ProjectDir)..\scripts\patch_assemblyinfo.cmd $(ProjectDir)" />

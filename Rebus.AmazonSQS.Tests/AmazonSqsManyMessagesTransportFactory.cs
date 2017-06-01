@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Amazon;
+using Amazon.Runtime;
 using Amazon.SQS;
 using Rebus.Activation;
 using Rebus.Bus;
@@ -25,18 +26,14 @@ namespace Rebus.AmazonSQS.Tests
             PurgeQueue(inputQueueAddress);
 
             var bus = Configure.With(builtinHandlerActivator)
-                .Transport(
-                    t =>
-                    {
-                        var amazonSqsConfig = new AmazonSQSConfig
-                        {
-                            RegionEndpoint = RegionEndpoint.GetBySystemName(AmazonSqsTransportFactory.ConnectionInfo.RegionEndpoint)
-                        };
+                .Transport(t =>
+                {
+                    var info = AmazonSqsTransportFactory.ConnectionInfo;
 
-                        t.UseAmazonSqs(AmazonSqsTransportFactory.ConnectionInfo.AccessKeyId,
-                            AmazonSqsTransportFactory.ConnectionInfo.SecretAccessKey,
-                            amazonSqsConfig, inputQueueAddress);
-                    })
+                    var amazonSqsConfig = new AmazonSQSConfig { RegionEndpoint = info.RegionEndpoint };
+
+                    t.UseAmazonSQS(info.AccessKeyId, info.SecretAccessKey, amazonSqsConfig, inputQueueAddress);
+                })
                 .Options(o =>
                 {
                     o.SetNumberOfWorkers(10);
@@ -53,17 +50,17 @@ namespace Rebus.AmazonSQS.Tests
         {
             var consoleLoggerFactory = new ConsoleLoggerFactory(false);
 
-            var amazonSqsConfig = new AmazonSQSConfig
-            {
-                RegionEndpoint = RegionEndpoint.GetBySystemName(AmazonSqsTransportFactory.ConnectionInfo.RegionEndpoint)
-            };
+            var connectionInfo = AmazonSqsTransportFactory.ConnectionInfo;
+            var amazonSqsConfig = new AmazonSQSConfig { RegionEndpoint = connectionInfo.RegionEndpoint };
 
-            var transport = new AmazonSqsTransport(
+            var credentials = new BasicAWSCredentials(connectionInfo.AccessKeyId, connectionInfo.SecretAccessKey);
+
+            var transport = new AmazonSQSTransport(
                 queueName,
-                AmazonSqsTransportFactory.ConnectionInfo.AccessKeyId,
-                AmazonSqsTransportFactory.ConnectionInfo.SecretAccessKey,
+                credentials,
                 amazonSqsConfig, consoleLoggerFactory,
-                new TplAsyncTaskFactory(consoleLoggerFactory));
+                new TplAsyncTaskFactory(consoleLoggerFactory)
+            );
 
             transport.Purge();
         }

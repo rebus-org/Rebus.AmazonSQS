@@ -1,4 +1,6 @@
-﻿namespace Rebus.AmazonSQS
+﻿using Rebus.Bus;
+
+namespace Rebus.Config
 {
     /// <summary>
     /// Holds all of the exposed options which can be applied when using the SQS transport.
@@ -13,11 +15,21 @@
         public int ReceiveWaitTimeSeconds { get; set; }
 
         /// <summary>
+        /// Configures whether SQS's built-in deferred messages mechanism is to be used when you <see cref="IBus.Defer"/> messages.
+        /// Defaults to <code>true</code>.
+        /// Please note that SQS's mechanism is only capably of deferring messages up 900 seconds, so you might need to
+        /// set <see cref="UseNativeDeferredMessages"/> to <code>false</code> and then use a "real" timeout manager like e.g.
+        /// one that uses SQL Server to store timeouts.
+        /// </summary>
+        public bool UseNativeDeferredMessages { get; set; }
+
+        /// <summary>
         /// Default constructor of the exposed SQS transport options.
         /// </summary>
         public AmazonSQSTransportOptions()
         {
             ReceiveWaitTimeSeconds = 1;
+            UseNativeDeferredMessages = true;
         }
     }
 }

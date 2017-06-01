@@ -10,6 +10,7 @@ using Amazon.Runtime;
 using Amazon.SQS;
 using Amazon.SQS.Model;
 using Rebus.Bus;
+using Rebus.Config;
 using Rebus.Exceptions;
 using Rebus.Extensions;
 using Rebus.Logging;
@@ -25,16 +26,16 @@ namespace Rebus.AmazonSQS
     /// <summary>
     /// Implementation of <see cref="ITransport"/> that uses Amazon Simple Queue Service to move messages around
     /// </summary>
-    public class AmazonSqsTransport : ITransport, IInitializable
+    public class AmazonSQSTransport : ITransport, IInitializable
     {
         const string ClientContextKey = "SQS_Client";
         const string OutgoingMessagesItemsKey = "SQS_OutgoingMessages";
 
+        readonly AmazonSQSTransportMessageSerializer _serializer = new AmazonSQSTransportMessageSerializer();
         readonly AWSCredentials _credentials;
         readonly AmazonSQSConfig _amazonSqsConfig;
         readonly IAsyncTaskFactory _asyncTaskFactory;
-        readonly AmazonSQSTransportOptions _transportOptions;
-        readonly AmazonSqsTransportMessageSerializer _serializer;
+        readonly AmazonSQSTransportOptions _options;
         readonly ILog _log;
 
         TimeSpan _peekLockDuration = TimeSpan.FromMinutes(5);
@@ -44,48 +45,30 @@ namespace Rebus.AmazonSQS
         /// <summary>
         /// Constructs the transport with the specified settings
         /// </summary>
-        public AmazonSqsTransport(string inputQueueAddress, string accessKeyId, string secretAccessKey, AmazonSQSConfig amazonSqsConfig, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory, AmazonSQSTransportOptions options = null)
-            : this(inputQueueAddress, Credentials(accessKeyId, secretAccessKey), amazonSqsConfig, rebusLoggerFactory, asyncTaskFactory, options)
-        {
-        }
-
-        /// <summary>
-        /// Constructs the transport with the specified settings
-        /// </summary>
-        public AmazonSqsTransport(string inputQueueAddress, AWSCredentials credentials, AmazonSQSConfig amazonSqsConfig, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory, AmazonSQSTransportOptions options = null)
+        public AmazonSQSTransport(string inputQueueAddress, AWSCredentials credentials, AmazonSQSConfig amazonSqsConfig, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory, AmazonSQSTransportOptions options = null)
         {
             if (credentials == null) throw new ArgumentNullException(nameof(credentials));
             if (amazonSqsConfig == null) throw new ArgumentNullException(nameof(amazonSqsConfig));
             if (rebusLoggerFactory == null) throw new ArgumentNullException(nameof(rebusLoggerFactory));
 
-            Address = inputQueueAddress;
+            _log = rebusLoggerFactory.GetLogger<AmazonSQSTransport>();
 
-
-            _log = rebusLoggerFactory.GetLogger<AmazonSqsTransport>();
-
-            if (Address != null)
+            if (inputQueueAddress != null)
             {
-                if (Address.Contains("/") && !Uri.IsWellFormedUriString(Address, UriKind.Absolute))
+                if (inputQueueAddress.Contains("/") && !Uri.IsWellFormedUriString(inputQueueAddress, UriKind.Absolute))
                 {
-                    throw new ArgumentException(
-                        "You could either have a simple queue name without slash (eg. \"inputqueue\") - or a complete URL for the queue endpoint. (eg. \"https://sqs.eu-central-1.amazonaws.com/234234234234234/somqueue\")",
-                        nameof(inputQueueAddress));
+                    var message = $"The input queue address '{inputQueueAddress}' is not valid - please either use a simple queue name (eg. 'my-queue') or a full URL for the queue endpoint (e.g. 'https://sqs.eu-central-1.amazonaws.com/234234234234234/somqueue').";
+
+                    throw new ArgumentException(message, nameof(inputQueueAddress));
                 }
             }
+
+            Address = inputQueueAddress;
 
             _credentials = credentials;
             _amazonSqsConfig = amazonSqsConfig;
             _asyncTaskFactory = asyncTaskFactory;
-            _serializer = new AmazonSqsTransportMessageSerializer();
-            _transportOptions = options ?? new AmazonSQSTransportOptions();
-        }
-
-        static AWSCredentials Credentials(string accessKeyId, string secretAccessKey)
-        {
-            if (accessKeyId == null) throw new ArgumentNullException(nameof(accessKeyId));
-            if (secretAccessKey == null) throw new ArgumentNullException(nameof(secretAccessKey));
-
-            return new BasicAWSCredentials(accessKeyId, secretAccessKey);
+            _options = options ?? new AmazonSQSTransportOptions();
         }
 
         /// <summary>
@@ -133,7 +116,7 @@ namespace Rebus.AmazonSQS
         /// </summary>
         public void CreateQueue(string address)
         {
-            _log.Info("Creating a new sqs queue:  with name: {0} on region: {1}", address, _amazonSqsConfig.RegionEndpoint);
+            _log.Info("Creating queue {queueName} on region {regionEndpoint}", address, _amazonSqsConfig.RegionEndpoint);
 
             using (var client = new AmazonSQSClient(_credentials, _amazonSqsConfig))
             {
@@ -156,20 +139,21 @@ namespace Rebus.AmazonSQS
         {
             if (Address == null) return;
 
-            _log.Info("Purging {0} (by receiving all messages from the queue)", Address);
+            _log.Info("Purging queue {queueName}", Address);
 
             try
             {
+                // we purge the queue by receiving all messages as fast as we can...
+                //the native purge function is not used because it is only allowed to use it
+                // once every 60 s
                 using (var client = new AmazonSQSClient(_credentials, _amazonSqsConfig))
                 {
                     var stopwatch = Stopwatch.StartNew();
 
                     while (true)
                     {
-                        var receiveTask = client.ReceiveMessageAsync(new ReceiveMessageRequest(_queueUrl)
-                        {
-                            MaxNumberOfMessages = 10
-                        });
+                        var request = new ReceiveMessageRequest(_queueUrl) { MaxNumberOfMessages = 10 };
+                        var receiveTask = client.ReceiveMessageAsync(request);
                         AsyncHelpers.RunSync(() => receiveTask);
                         var response = receiveTask.Result;
 
@@ -188,12 +172,11 @@ namespace Rebus.AmazonSQS
                             var errors = string.Join(Environment.NewLine,
                                 deleteResponse.Failed.Select(f => $"{f.Message} ({f.Id})"));
 
-                            throw new RebusApplicationException(
-                                $@"Error {deleteResponse.HttpStatusCode} while purging: {errors}");
+                            throw new RebusApplicationException($@"Error {deleteResponse.HttpStatusCode} while purging: {errors}");
                         }
                     }
 
-                    _log.Info($"Purging {Address} took {stopwatch.Elapsed.TotalSeconds:0.0} s");
+                    _log.Info("Purging {queueName} took {elapsedSeconds} s", Address, stopwatch.Elapsed.TotalSeconds);
                 }
             }
             catch (AmazonSQSException exception) when (exception.StatusCode == HttpStatusCode.BadRequest)
@@ -231,10 +214,7 @@ namespace Rebus.AmazonSQS
             {
                 var sendMessageBatchRequestEntries = new ConcurrentQueue<OutgoingMessage>();
 
-                context.OnCommitted(async () =>
-                {
-                    await SendOutgoingMessages(sendMessageBatchRequestEntries, context);
-                });
+                context.OnCommitted(() => SendOutgoingMessages(sendMessageBatchRequestEntries, context));
 
                 return sendMessageBatchRequestEntries;
             });
@@ -263,10 +243,11 @@ namespace Rebus.AmazonSQS
                                 var headers = transportMessage.Headers;
                                 var messageId = headers[Headers.MessageId];
 
-                                var sqsMessage = new AmazonSqsTransportMessage(transportMessage.Headers, GetBody(transportMessage.Body));
-                                var delaySeconds = GetDelaySeconds(headers);
+                                var sqsMessage = new AmazonSQSTransportMessage(transportMessage.Headers, GetBody(transportMessage.Body));
 
                                 var entry = new SendMessageBatchRequestEntry(messageId, _serializer.Serialize(sqsMessage));
+
+                                var delaySeconds = GetDelaySeconds(headers);
 
                                 if (delaySeconds != null)
                                 {
@@ -291,8 +272,10 @@ namespace Rebus.AmazonSQS
                 );
         }
 
-        static int? GetDelaySeconds(IReadOnlyDictionary<string, string> headers)
+        int? GetDelaySeconds(IReadOnlyDictionary<string, string> headers)
         {
+            if (!_options.UseNativeDeferredMessages) return null;
+
             string deferUntilTime;
             if (!headers.TryGetValue(Headers.DeferredUntil, out deferUntilTime)) return null;
 
@@ -322,7 +305,7 @@ namespace Rebus.AmazonSQS
             var request = new ReceiveMessageRequest(_queueUrl)
             {
                 MaxNumberOfMessages = 1,
-                WaitTimeSeconds = _transportOptions.ReceiveWaitTimeSeconds,
+                WaitTimeSeconds = _options.ReceiveWaitTimeSeconds,
                 AttributeNames = new List<string>(new[] { "All" }),
                 MessageAttributeNames = new List<string>(new[] { "All" })
             };
@@ -367,7 +350,7 @@ namespace Rebus.AmazonSQS
             return _asyncTaskFactory.Create($"RenewPeekLock-{message.MessageId}",
                 async () =>
                 {
-                    _log.Info("Renewing peek lock for message with ID {0}", message.MessageId);
+                    _log.Info("Renewing peek lock for message with ID {messageId}", message.MessageId);
 
                     await
                         client.ChangeMessageVisibilityAsync(new ChangeMessageVisibilityRequest(_queueUrl,
@@ -465,8 +448,6 @@ namespace Rebus.AmazonSQS
                 {
                     return address;
                 }
-
-                _log.Info("Getting queueUrl from SQS service by name:{0}", address);
 
                 var client = GetClientFromTransactionContext(transactionContext);
                 var task = client.GetQueueUrlAsync(address);

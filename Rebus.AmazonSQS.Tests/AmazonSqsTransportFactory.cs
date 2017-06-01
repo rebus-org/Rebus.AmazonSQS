@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using Amazon;
+using Amazon.Runtime;
 using Amazon.SQS;
+using Rebus.Config;
 using Rebus.Exceptions;
 using Rebus.Extensions;
 using Rebus.Logging;
@@ -20,7 +21,7 @@ namespace Rebus.AmazonSQS.Tests
                                                                                                ?? ConnectionInfoFromEnvironmentVariable("rebus2_asqs_connection_string")
                                                                                                ?? Throw("Could not find Amazon Sqs connetion Info!"));
 
-        private static string GetFilePath()
+        static string GetFilePath()
         {
 #if NET45
             var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
@@ -38,25 +39,29 @@ namespace Rebus.AmazonSQS.Tests
         {
             if (inputQueueAddress == null)
             {
-                return CreateTransport(inputQueueAddress, peeklockDuration, options);
+                // one-way client
+                return CreateTransport(null, peeklockDuration, options);
             }
 
             return _queuesToDelete.GetOrAdd(inputQueueAddress, () => CreateTransport(inputQueueAddress, peeklockDuration, options));
         }
 
-        public static AmazonSqsTransport CreateTransport(string inputQueueAddress, TimeSpan peeklockDuration, AmazonSQSTransportOptions options = null)
+        public static AmazonSQSTransport CreateTransport(string inputQueueAddress, TimeSpan peeklockDuration, AmazonSQSTransportOptions options = null)
         {
-            var amazonSqsConfig = new AmazonSQSConfig
-            {
-                RegionEndpoint = RegionEndpoint.GetBySystemName(ConnectionInfo.RegionEndpoint)
-            };
+            var connectionInfo = ConnectionInfo;
+            var amazonSqsConfig = new AmazonSQSConfig { RegionEndpoint = connectionInfo.RegionEndpoint };
 
             var consoleLoggerFactory = new ConsoleLoggerFactory(false);
-            var transport = new AmazonSqsTransport(inputQueueAddress, ConnectionInfo.AccessKeyId, ConnectionInfo.SecretAccessKey,
+            var credentials = new BasicAWSCredentials(connectionInfo.AccessKeyId, connectionInfo.SecretAccessKey);
+
+            var transport = new AmazonSQSTransport(
+                inputQueueAddress,
+                credentials, 
                 amazonSqsConfig,
                 consoleLoggerFactory,
                 new TplAsyncTaskFactory(consoleLoggerFactory),
-                options);
+                options
+            );
 
             transport.Initialize(peeklockDuration);
             transport.Purge();
@@ -73,7 +78,7 @@ namespace Rebus.AmazonSQS.Tests
             return Create(inputQueueAddress, TimeSpan.FromSeconds(30));
         }
 
-        readonly Dictionary<string, AmazonSqsTransport> _queuesToDelete = new Dictionary<string, AmazonSqsTransport>();
+        readonly Dictionary<string, AmazonSQSTransport> _queuesToDelete = new Dictionary<string, AmazonSQSTransport>();
 
 
         public void CleanUp()

@@ -24,7 +24,7 @@
     <DefineConstants>RELEASE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(TargetFramework)' == 'net45' ">
     <DefineConstants>NET45</DefineConstants>
@@ -32,11 +32,14 @@
   <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.6' ">
     <DefineConstants>NETSTANDARD1_6</DefineConstants>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net45|AnyCPU'">
+    <TreatSpecificWarningsAsErrors />
+  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Rebus.AmazonSQS\Rebus.AmazonSQS.csproj" />
     <PackageReference Include="awssdk.sqs" Version="3.3.1.10" />
     <PackageReference Include="nunit" Version="3.6.1" />
-    <PackageReference Include="rebus" Version="4.0.0-b09" />
+    <PackageReference Include="rebus" Version="4.0.0-b11" />
     <PackageReference Include="rebus.tests.contracts" Version="4.0.0-b10" />
   </ItemGroup>
   <ItemGroup>

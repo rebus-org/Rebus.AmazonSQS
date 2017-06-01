@@ -1,50 +1,57 @@
 using System;
 using System.Linq;
+using Amazon;
 
 namespace Rebus.AmazonSQS.Tests
 {
     public class ConnectionInfo
     {
-        internal string AccessKeyId;
-        internal string SecretAccessKey;
-        internal string RegionEndpoint;
-        /// <summary>
-        /// Expects format Key=Value¤Key=Value¤Key=Value
-        /// Ie. AccessKeyId=xxxxx¤SecretAccessKey=yyyy¤BaseQueueUrl=asdasdas¤RegionEndpoint=asdasd
-        /// </summary>
-        /// <param name="textString"></param>
-        /// <returns></returns>
-        internal static ConnectionInfo CreateFromString(string textString)
+        public string AccessKeyId { get; }
+        public string SecretAccessKey { get; }
+        public RegionEndpoint RegionEndpoint { get; }
+
+        ConnectionInfo(string accessKeyId, string secretAccessKey, string regionEndpointName)
+        {
+            AccessKeyId = accessKeyId;
+            SecretAccessKey = secretAccessKey;
+            RegionEndpoint = GetRegionEndpoint(regionEndpointName);
+        }
+
+        public static ConnectionInfo CreateFromString(string textString)
         {
             Console.WriteLine("Parsing connectionInfo from string: {0}", textString);
             
             var keyValuePairs = textString.Split("; ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
             
-            Console.WriteLine(@"Found {0} pairs. Expected 3 on the form
-
-AccessKeyId=blabla; SecretAccessKey=blablalba; RegionEndpoint=something
-
-", keyValuePairs.Length);
             try
             {
-                var keysAndValues = keyValuePairs.ToDictionary((kv) => kv.Split('=')[0], (kv) => kv.Split('=')[1]);
-                return new ConnectionInfo
-                {
-                    AccessKeyId = keysAndValues["AccessKeyId"],
-                    SecretAccessKey = keysAndValues["SecretAccessKey"],
-                    RegionEndpoint = keysAndValues["RegionEndpoint"]
-                };
+                var keysAndValues = keyValuePairs
+                    .Select(kvp => kvp.Split('='))
+                    .ToDictionary(kv => kv.First(), kv => kv.Last());
+
+                return new ConnectionInfo(
+                    keysAndValues["AccessKeyId"],
+                    keysAndValues["SecretAccessKey"],
+                    keysAndValues["RegionEndpoint"]
+                );
 
             }
             catch (Exception exception)
             {
-
-                Console.WriteLine("Could not extract keys and values from textstring. Ensure that the key and values are split by = \nand that the Key values used are: AccessKeyId, SecretAccessKey and BaseQueueUrl");
-                Console.WriteLine("\nException message: {0}", exception.Message);
-
-                throw;
+                throw new FormatException($"Could not extract access key ID, secret access key, and region endpoint from this: '{textString}' - expected the form 'AccessKeyId=blabla; SecretAccessKey=blablalba; RegionEndpoint=something'", exception);
             }
         }
 
+        static RegionEndpoint GetRegionEndpoint(string regionEndpointName)
+        {
+            try
+            {
+                return RegionEndpoint.GetBySystemName(regionEndpointName);
+            }
+            catch (Exception exception)
+            {
+                throw new FormatException($"The region endpoint '{regionEndpointName}' could not be recognized", exception);
+            }
+        }
     }
 }

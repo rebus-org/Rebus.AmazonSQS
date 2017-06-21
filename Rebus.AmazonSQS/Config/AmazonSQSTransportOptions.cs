@@ -24,12 +24,19 @@ namespace Rebus.Config
         public bool UseNativeDeferredMessages { get; set; }
 
         /// <summary>
+        /// Configures whether Rebus is in control to create queues or not. If set to false, Rebus expects that the queue's are already created. 
+        /// Defaults to <code>true</code>.
+        /// </summary>
+        public bool CreateQueues {get;set;}
+
+        /// <summary>
         /// Default constructor of the exposed SQS transport options.
         /// </summary>
         public AmazonSQSTransportOptions()
         {
             ReceiveWaitTimeSeconds = 1;
             UseNativeDeferredMessages = true;
+            CreateQueues = true;
         }
     }
 }

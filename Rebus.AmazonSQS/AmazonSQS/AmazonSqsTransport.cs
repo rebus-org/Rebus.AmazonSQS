@@ -88,9 +88,7 @@ namespace Rebus.AmazonSQS
         public void Initialize()
         {
             if (Address == null) return;
-
-            CreateQueue(Address);
-
+            if (_options.CreateQueues) CreateQueue(Address);
             _queueUrl = GetInputQueueUrl();
         }
 

@@ -29,7 +29,7 @@
 
 * Update to Rebus 3
 
-## 4.0.0-b08
+## 4.0.0-b09
 
 * Update to Rebus 4
 * Add .NET Core support
@@ -37,9 +37,11 @@
 * Fix csproj - thanks [robvanpamel]
 * Update deps to b11
 * Add ability to use an external timeout manager or Rebus' ordinary timeout managers to overcome SQS limitations
+* Add ability to skip queue creation - thanks [robvanpamel]
 
 ---
 
 [MooseMagnet]: https://github.com/MooseMagnet
 [mvandevy]: https://github.com/mvandevy
 [robvanpamel]: https://github.com/robvanpamel
+

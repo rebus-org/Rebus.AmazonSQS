@@ -5,7 +5,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Rebus.AmazonSQS.Tests</RootNamespace>
     <AssemblyName>Rebus.AmazonSQS.Tests</AssemblyName>
-    <TargetFrameworks>net45;netstandard1.6</TargetFrameworks>
+    <TargetFrameworks>net45;netstandard1.3</TargetFrameworks>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -29,8 +29,8 @@
   <PropertyGroup Condition=" '$(TargetFramework)' == 'net45' ">
     <DefineConstants>NET45</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.6' ">
-    <DefineConstants>NETSTANDARD1_6</DefineConstants>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.3' ">
+    <DefineConstants>NETSTANDARD1_3</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net45|AnyCPU'">
     <TreatSpecificWarningsAsErrors />
@@ -38,9 +38,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Rebus.AmazonSQS\Rebus.AmazonSQS.csproj" />
     <PackageReference Include="awssdk.sqs" Version="3.3.1.10" />
-    <PackageReference Include="nunit" Version="3.6.1" />
-    <PackageReference Include="rebus" Version="4.0.0-b11" />
-    <PackageReference Include="rebus.tests.contracts" Version="4.0.0-b10" />
+    <PackageReference Include="nunit" Version="3.7.1" />
+    <PackageReference Include="rebus" Version="4.0.0-b16" />
+    <PackageReference Include="rebus.tests.contracts" Version="4.0.0-b16" />
   </ItemGroup>
   <ItemGroup>
     <None Update="sqs_connectionstring.txt">

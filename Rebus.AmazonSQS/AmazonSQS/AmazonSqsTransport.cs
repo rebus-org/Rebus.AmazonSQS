@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -119,7 +120,16 @@ namespace Rebus.AmazonSQS
             using (var client = new AmazonSQSClient(_credentials, _amazonSqsConfig))
             {
                 var queueName = GetQueueNameFromAddress(address);
-                var task = client.CreateQueueAsync(new CreateQueueRequest(queueName));
+
+                // See http://docs.aws.amazon.com/sdkfornet/v3/apidocs/items/SQS/TSQSCreateQueueRequest.html for options
+                var createQueueRequest = new CreateQueueRequest(queueName)
+                {
+                    Attributes =
+                    {
+                        ["VisibilityTimeout"] = ((int) _peekLockDuration.TotalSeconds).ToString(CultureInfo.InvariantCulture)
+                    }
+                };
+                var task = client.CreateQueueAsync(createQueueRequest);
                 AsyncHelpers.RunSync(() => task);
                 var response = task.Result;
 

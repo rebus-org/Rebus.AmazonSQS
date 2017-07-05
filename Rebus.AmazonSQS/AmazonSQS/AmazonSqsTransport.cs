@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -119,14 +120,52 @@ namespace Rebus.AmazonSQS
             using (var client = new AmazonSQSClient(_credentials, _amazonSqsConfig))
             {
                 var queueName = GetQueueNameFromAddress(address);
-                var task = client.CreateQueueAsync(new CreateQueueRequest(queueName));
-                AsyncHelpers.RunSync(() => task);
-                var response = task.Result;
 
-                if (response.HttpStatusCode != HttpStatusCode.OK)
+                // Check if queue exists
+                try
                 {
-                    throw new Exception($"Could not create queue '{queueName}' - got HTTP {response.HttpStatusCode}");
+                    // See http://docs.aws.amazon.com/sdkfornet/v3/apidocs/items/SQS/TSQSGetQueueUrlRequest.html for options
+                    var getQueueUrlTask = client.GetQueueUrlAsync(new GetQueueUrlRequest(queueName));
+                    AsyncHelpers.RunSync(() => getQueueUrlTask);
+                    var getQueueUrlResponse = getQueueUrlTask.Result;
+                    if (getQueueUrlResponse.HttpStatusCode != HttpStatusCode.OK)
+                    {
+                        throw new Exception($"Could not check for existing queue '{queueName}' - got HTTP {getQueueUrlResponse.HttpStatusCode}");
+                    }
+
+                    // See http://docs.aws.amazon.com/sdkfornet/v3/apidocs/items/SQS/TSQSSetQueueAttributesRequest.html for options
+                    var setAttributesTask = client.SetQueueAttributesAsync(getQueueUrlResponse.QueueUrl, new Dictionary<string, string>
+                    {
+                        ["VisibilityTimeout"] = ((int) _peekLockDuration.TotalSeconds).ToString(CultureInfo.InvariantCulture)
+                    });
+                    AsyncHelpers.RunSync(() => setAttributesTask);
+                    var setAttributesResponse = setAttributesTask.Result;
+                    if (setAttributesResponse.HttpStatusCode != HttpStatusCode.OK)
+                    {
+                        throw new Exception($"Could not set attributes for queue '{queueName}' - got HTTP {setAttributesResponse.HttpStatusCode}");
+                    }
                 }
+                catch (QueueDoesNotExistException)
+                {
+                    // See http://docs.aws.amazon.com/sdkfornet/v3/apidocs/items/SQS/TSQSCreateQueueRequest.html for options
+                    var createQueueRequest = new CreateQueueRequest(queueName)
+                    {
+                        Attributes =
+                        {
+                            ["VisibilityTimeout"] = ((int) _peekLockDuration.TotalSeconds).ToString(CultureInfo.InvariantCulture)
+                        }
+                    };
+                    var task = client.CreateQueueAsync(createQueueRequest);
+                    AsyncHelpers.RunSync(() => task);
+                    var response = task.Result;
+
+                    if (response.HttpStatusCode != HttpStatusCode.OK)
+                    {
+                        throw new Exception($"Could not create queue '{queueName}' - got HTTP {response.HttpStatusCode}");
+                    }
+                }
+
+                
             }
         }
 

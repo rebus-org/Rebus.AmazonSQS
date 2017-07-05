@@ -29,7 +29,7 @@
 
 * Update to Rebus 3
 
-## 4.0.0-b10
+## 4.0.0-b11
 
 * Update to Rebus 4
 * Add .NET Core support (netstandard 1.3)
@@ -38,9 +38,11 @@
 * Update deps to b11
 * Add ability to use an external timeout manager or Rebus' ordinary timeout managers to overcome SQS limitations
 * Add ability to skip queue creation - thanks [robvanpamel]
+* Remember to configure visibility timeout for queues created by Rebus - thanks [micdah]
 
 ---
 
+[micdah]: https://github.com/micdah
 [MooseMagnet]: https://github.com/MooseMagnet
 [mvandevy]: https://github.com/mvandevy
 [robvanpamel]: https://github.com/robvanpamel

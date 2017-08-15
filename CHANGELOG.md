@@ -29,13 +29,12 @@
 
 * Update to Rebus 3
 
-## 4.0.0-b11
+## 4.0.0
 
 * Update to Rebus 4
 * Add .NET Core support (netstandard 1.3)
 * Change message format to break out of SQS's limitation of being able to transfer only 10 headers - thanks [mvandevy]
 * Fix csproj - thanks [robvanpamel]
-* Update deps to b11
 * Add ability to use an external timeout manager or Rebus' ordinary timeout managers to overcome SQS limitations
 * Add ability to skip queue creation - thanks [robvanpamel]
 * Remember to configure visibility timeout for queues created by Rebus - thanks [micdah]

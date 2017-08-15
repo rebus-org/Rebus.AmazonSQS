@@ -39,8 +39,8 @@
     <ProjectReference Include="..\Rebus.AmazonSQS\Rebus.AmazonSQS.csproj" />
     <PackageReference Include="awssdk.sqs" Version="3.3.1.10" />
     <PackageReference Include="nunit" Version="3.7.1" />
-    <PackageReference Include="rebus" Version="4.0.0-b16" />
-    <PackageReference Include="rebus.tests.contracts" Version="4.0.0-b16" />
+    <PackageReference Include="rebus" Version="4.0.0" />
+    <PackageReference Include="rebus.tests.contracts" Version="4.0.0" />
   </ItemGroup>
   <ItemGroup>
     <None Update="sqs_connectionstring.txt">

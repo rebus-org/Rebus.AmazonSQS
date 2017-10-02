@@ -70,6 +70,24 @@ namespace Rebus.Config
             ConfigureOneWayClient(configurer, credentials, amazonSqsConfig, options ?? new AmazonSQSTransportOptions());
         }
 
+        /// <summary>
+        /// Configures Rebus to use Amazon Simple Queue Service as the message transport
+        /// </summary>
+        public static void UseAmazonSQSAsOneWayClient(this StandardConfigurer<ITransport> configurer, AWSCredentials credentials, AmazonSQSConfig config, AmazonSQSTransportOptions options = null)
+        {
+            ConfigureOneWayClient(configurer, credentials, config, options ?? new AmazonSQSTransportOptions());
+        }
+
+        /// <summary>
+        /// Configures Rebus to use Amazon Simple Queue Service as the message transport
+        /// </summary>
+        public static void UseAmazonSQSAsOneWayClient(this StandardConfigurer<ITransport> configurer, AWSCredentials credentials, RegionEndpoint regionEndpoint, AmazonSQSTransportOptions options = null)
+        {
+            var config = new AmazonSQSConfig { RegionEndpoint = regionEndpoint };
+
+            ConfigureOneWayClient(configurer, credentials, config, options ?? new AmazonSQSTransportOptions());
+        }
+
         static void Configure(StandardConfigurer<ITransport> configurer, AWSCredentials credentials, AmazonSQSConfig config, string inputQueueAddress, AmazonSQSTransportOptions options)
         {
             if (configurer == null) throw new ArgumentNullException(nameof(configurer));

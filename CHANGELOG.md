@@ -39,8 +39,13 @@
 * Add ability to skip queue creation - thanks [robvanpamel]
 * Remember to configure visibility timeout for queues created by Rebus - thanks [micdah]
 
+## 4.0.1
+
+* Additional one-way client configuration overloads - thanks [jonathanyong81]
+
 ---
 
+[jonathanyong81]: https://github.com/jonathanyong81
 [micdah]: https://github.com/micdah
 [MooseMagnet]: https://github.com/MooseMagnet
 [mvandevy]: https://github.com/mvandevy

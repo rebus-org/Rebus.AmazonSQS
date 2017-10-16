@@ -114,18 +114,21 @@ namespace Rebus.AmazonSQS
         /// </summary>
         public void CreateQueue(string address)
         {
-            _log.Info("Creating queue {queueName} on region {regionEndpoint}", address, _amazonSqsConfig.RegionEndpoint);
-
-            using (var client = new AmazonSQSClient(_credentials, _amazonSqsConfig))
+            if (_options.CreateQueues)
             {
-                var queueName = GetQueueNameFromAddress(address);
-                var task = client.CreateQueueAsync(new CreateQueueRequest(queueName));
-                AsyncHelpers.RunSync(() => task);
-                var response = task.Result;
+                _log.Info("Creating queue {queueName} on region {regionEndpoint}", address, _amazonSqsConfig.RegionEndpoint);
 
-                if (response.HttpStatusCode != HttpStatusCode.OK)
+                using (var client = new AmazonSQSClient(_credentials, _amazonSqsConfig))
                 {
-                    throw new Exception($"Could not create queue '{queueName}' - got HTTP {response.HttpStatusCode}");
+                    var queueName = GetQueueNameFromAddress(address);
+                    var task = client.CreateQueueAsync(new CreateQueueRequest(queueName));
+                    AsyncHelpers.RunSync(() => task);
+                    var response = task.Result;
+
+                    if (response.HttpStatusCode != HttpStatusCode.OK)
+                    {
+                        throw new Exception($"Could not create queue '{queueName}' - got HTTP {response.HttpStatusCode}");
+                    }
                 }
             }
         }

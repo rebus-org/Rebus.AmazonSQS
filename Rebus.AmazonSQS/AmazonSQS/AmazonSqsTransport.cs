@@ -8,7 +8,9 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.Runtime;
+using Amazon.S3;
 using Amazon.SQS;
+using Amazon.SQS.ExtendedClient;
 using Amazon.SQS.Model;
 using Rebus.Bus;
 using Rebus.Config;
@@ -35,8 +37,10 @@ namespace Rebus.AmazonSQS
         readonly AmazonSQSTransportMessageSerializer _serializer = new AmazonSQSTransportMessageSerializer();
         readonly AWSCredentials _credentials;
         readonly AmazonSQSConfig _amazonSqsConfig;
+        readonly AmazonS3Config _amazonS3Config;
         readonly IAsyncTaskFactory _asyncTaskFactory;
         readonly AmazonSQSTransportOptions _options;
+        readonly AmazonS3Options _s3Options;
         readonly ILog _log;
 
         TimeSpan _peekLockDuration = TimeSpan.FromMinutes(5);
@@ -46,7 +50,9 @@ namespace Rebus.AmazonSQS
         /// <summary>
         /// Constructs the transport with the specified settings
         /// </summary>
-        public AmazonSQSTransport(string inputQueueAddress, AWSCredentials credentials, AmazonSQSConfig amazonSqsConfig, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory, AmazonSQSTransportOptions options = null)
+        public AmazonSQSTransport(string inputQueueAddress, AWSCredentials credentials, AmazonSQSConfig amazonSqsConfig,
+            IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory, AmazonSQSTransportOptions options = null,
+            AmazonS3Config amazonS3Config = null, AmazonS3Options s3Options = null)
         {
             if (credentials == null) throw new ArgumentNullException(nameof(credentials));
             if (amazonSqsConfig == null) throw new ArgumentNullException(nameof(amazonSqsConfig));
@@ -70,6 +76,8 @@ namespace Rebus.AmazonSQS
             _amazonSqsConfig = amazonSqsConfig;
             _asyncTaskFactory = asyncTaskFactory;
             _options = options ?? new AmazonSQSTransportOptions();
+            _amazonS3Config = amazonS3Config;
+            _s3Options = s3Options;
         }
 
         /// <summary>
@@ -136,7 +144,7 @@ namespace Rebus.AmazonSQS
                     // See http://docs.aws.amazon.com/sdkfornet/v3/apidocs/items/SQS/TSQSSetQueueAttributesRequest.html for options
                     var setAttributesTask = client.SetQueueAttributesAsync(getQueueUrlResponse.QueueUrl, new Dictionary<string, string>
                     {
-                        ["VisibilityTimeout"] = ((int) _peekLockDuration.TotalSeconds).ToString(CultureInfo.InvariantCulture)
+                        ["VisibilityTimeout"] = ((int)_peekLockDuration.TotalSeconds).ToString(CultureInfo.InvariantCulture)
                     });
                     AsyncHelpers.RunSync(() => setAttributesTask);
                     var setAttributesResponse = setAttributesTask.Result;
@@ -165,7 +173,7 @@ namespace Rebus.AmazonSQS
                     }
                 }
 
-                
+
             }
         }
 
@@ -382,16 +390,15 @@ namespace Rebus.AmazonSQS
             return transportMessage;
         }
 
-        IAsyncTask CreateRenewalTaskForMessage(Message message, AmazonSQSClient client)
+        IAsyncTask CreateRenewalTaskForMessage(Message message, IAmazonSQS client)
         {
             return _asyncTaskFactory.Create($"RenewPeekLock-{message.MessageId}",
                 async () =>
                 {
                     _log.Info("Renewing peek lock for message with ID {messageId}", message.MessageId);
 
-                    await
-                        client.ChangeMessageVisibilityAsync(new ChangeMessageVisibilityRequest(_queueUrl,
-                            message.ReceiptHandle, (int)_peekLockDuration.TotalSeconds));
+                    await client.ChangeMessageVisibilityAsync(new ChangeMessageVisibilityRequest(_queueUrl,
+                        message.ReceiptHandle, (int)_peekLockDuration.TotalSeconds));
                 },
                 intervalSeconds: (int)_peekLockRenewalInterval.TotalSeconds,
                 prettyInsignificant: true);
@@ -449,13 +456,32 @@ namespace Rebus.AmazonSQS
             return sentTime;
         }
 
-        AmazonSQSClient GetClientFromTransactionContext(ITransactionContext context)
+        IAmazonSQS GetClientFromTransactionContext(ITransactionContext context)
+        {
+            if (_amazonS3Config != null) return GetExtendedAmazonSQSClientFromTransactionContext(context);
+            return GetAmazonSQSClientFromTransactionContext(context);
+        }
+
+        private AmazonSQSClient GetAmazonSQSClientFromTransactionContext(ITransactionContext context)
         {
             return context.GetOrAdd(ClientContextKey, () =>
             {
                 var amazonSqsClient = new AmazonSQSClient(_credentials, _amazonSqsConfig);
                 context.OnDisposed(amazonSqsClient.Dispose);
                 return amazonSqsClient;
+            });
+        }
+
+        private AmazonSQSExtendedClient GetExtendedAmazonSQSClientFromTransactionContext(ITransactionContext context)
+        {
+            return context.GetOrAdd(ClientContextKey, () =>
+            {
+                var amazonS3Client = new AmazonS3Client(_credentials, _amazonS3Config);
+                var amazonSqsClient = new AmazonSQSClient(_credentials, _amazonSqsConfig);
+                var extendedClient = new AmazonSQSExtendedClient(amazonSqsClient,
+                    new ExtendedClientConfiguration().WithLargePayloadSupportEnabled(amazonS3Client, _s3Options.BucketName));
+                context.OnDisposed(extendedClient.Dispose);
+                return extendedClient;
             });
         }
 

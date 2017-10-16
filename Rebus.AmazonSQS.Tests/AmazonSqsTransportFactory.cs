@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using Amazon.Runtime;
+using Amazon.S3;
 using Amazon.SQS;
 using Rebus.Config;
 using Rebus.Exceptions;
@@ -19,48 +20,51 @@ namespace Rebus.AmazonSQS.Tests
 
         internal static ConnectionInfo ConnectionInfo => _connectionInfo ?? (_connectionInfo = ConnectionInfoFromFileOrNull(GetFilePath())
                                                                                                ?? ConnectionInfoFromEnvironmentVariable("rebus2_asqs_connection_string")
-                                                                                               ?? Throw("Could not find Amazon Sqs connetion Info!"));
+                                                                                               ?? Throw("Could not find Amazon Sqs connection Info!"));
 
         static string GetFilePath()
         {
-#if NET45
-            var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            
-#elif NETSTANDARD1_3
+            //#if NET45
+            //            var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            //#elif NETSTANDARD1_3
             var baseDirectory = AppContext.BaseDirectory;
-#endif
+            //#endif
             // added because of test run issues on MacOS
             var indexOfBin = baseDirectory.LastIndexOf("bin", StringComparison.OrdinalIgnoreCase);
             var connectionStringFileDirectory = baseDirectory.Substring(0, (indexOfBin > 0) ? indexOfBin : baseDirectory.Length);
+            Console.WriteLine($"path: {connectionStringFileDirectory}");
             return Path.Combine(connectionStringFileDirectory, "sqs_connectionstring.txt");
         }
 
-        public ITransport Create(string inputQueueAddress, TimeSpan peeklockDuration, AmazonSQSTransportOptions options = null)
+        public ITransport Create(string inputQueueAddress, TimeSpan peeklockDuration, AmazonSQSTransportOptions options = null, AmazonS3Options s3Options = null)
         {
             if (inputQueueAddress == null)
             {
                 // one-way client
-                return CreateTransport(null, peeklockDuration, options);
+                return CreateTransport(null, peeklockDuration, options, s3Options);
             }
 
-            return _queuesToDelete.GetOrAdd(inputQueueAddress, () => CreateTransport(inputQueueAddress, peeklockDuration, options));
+            return _queuesToDelete.GetOrAdd(inputQueueAddress, () => CreateTransport(inputQueueAddress, peeklockDuration, options, s3Options));
         }
 
-        public static AmazonSQSTransport CreateTransport(string inputQueueAddress, TimeSpan peeklockDuration, AmazonSQSTransportOptions options = null)
+        public static AmazonSQSTransport CreateTransport(string inputQueueAddress, TimeSpan peeklockDuration, AmazonSQSTransportOptions options = null, AmazonS3Options s3Options = null)
         {
             var connectionInfo = ConnectionInfo;
             var amazonSqsConfig = new AmazonSQSConfig { RegionEndpoint = connectionInfo.RegionEndpoint };
+            var amazonS3Config = s3Options != null ? new AmazonS3Config { RegionEndpoint = connectionInfo.RegionEndpoint } : null;
 
             var consoleLoggerFactory = new ConsoleLoggerFactory(false);
             var credentials = new BasicAWSCredentials(connectionInfo.AccessKeyId, connectionInfo.SecretAccessKey);
 
             var transport = new AmazonSQSTransport(
                 inputQueueAddress,
-                credentials, 
+                credentials,
                 amazonSqsConfig,
                 consoleLoggerFactory,
                 new TplAsyncTaskFactory(consoleLoggerFactory),
-                options
+                options,
+                amazonS3Config,
+                s3Options
             );
 
             transport.Initialize(peeklockDuration);
@@ -76,6 +80,11 @@ namespace Rebus.AmazonSQS.Tests
         public ITransport Create(string inputQueueAddress)
         {
             return Create(inputQueueAddress, TimeSpan.FromSeconds(30));
+        }
+
+        public ITransport CreateExtended(string inputQueueAddress, string bucketName)
+        {
+            return Create(inputQueueAddress, TimeSpan.FromSeconds(30), null, new AmazonS3Options { BucketName = bucketName });
         }
 
         readonly Dictionary<string, AmazonSQSTransport> _queuesToDelete = new Dictionary<string, AmazonSQSTransport>();

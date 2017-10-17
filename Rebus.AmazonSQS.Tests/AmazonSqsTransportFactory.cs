@@ -32,7 +32,6 @@ namespace Rebus.AmazonSQS.Tests
             // added because of test run issues on MacOS
             var indexOfBin = baseDirectory.LastIndexOf("bin", StringComparison.OrdinalIgnoreCase);
             var connectionStringFileDirectory = baseDirectory.Substring(0, (indexOfBin > 0) ? indexOfBin : baseDirectory.Length);
-            Console.WriteLine($"path: {connectionStringFileDirectory}");
             return Path.Combine(connectionStringFileDirectory, "sqs_connectionstring.txt");
         }
 

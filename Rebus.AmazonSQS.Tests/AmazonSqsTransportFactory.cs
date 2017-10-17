@@ -24,11 +24,11 @@ namespace Rebus.AmazonSQS.Tests
 
         static string GetFilePath()
         {
-            //#if NET45
-            //            var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            //#elif NETSTANDARD1_3
+#if NET45
+            var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+#elif NETSTANDARD1_3
             var baseDirectory = AppContext.BaseDirectory;
-            //#endif
+#endif
             // added because of test run issues on MacOS
             var indexOfBin = baseDirectory.LastIndexOf("bin", StringComparison.OrdinalIgnoreCase);
             var connectionStringFileDirectory = baseDirectory.Substring(0, (indexOfBin > 0) ? indexOfBin : baseDirectory.Length);

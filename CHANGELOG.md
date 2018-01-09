@@ -43,6 +43,10 @@
 
 * Additional one-way client configuration overloads - thanks [jonathanyong81]
 
+## 4.0.2
+
+* Fix bug that did not limit size of sent message batches to 10
+
 ---
 
 [jonathanyong81]: https://github.com/jonathanyong81

@@ -47,6 +47,10 @@
 
 * Fix bug that did not limit size of sent message batches to 10
 
+## 4.0.3
+
+* Do not create queues when configuration says not to - thanks [robvanpamel]
+
 ---
 
 [jonathanyong81]: https://github.com/jonathanyong81

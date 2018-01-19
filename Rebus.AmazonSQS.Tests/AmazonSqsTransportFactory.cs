@@ -26,7 +26,7 @@ namespace Rebus.AmazonSQS.Tests
 #if NET45
             var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
             
-#elif NETSTANDARD1_6
+#elif NETSTANDARD1_3
             var baseDirectory = AppContext.BaseDirectory;
 #endif
             // added because of test run issues on MacOS

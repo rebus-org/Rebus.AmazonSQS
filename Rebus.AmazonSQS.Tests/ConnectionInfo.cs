@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Amazon;
+using Rebus.Extensions;
 
 namespace Rebus.AmazonSQS.Tests
 {
@@ -19,10 +20,10 @@ namespace Rebus.AmazonSQS.Tests
 
         public static ConnectionInfo CreateFromString(string textString)
         {
-            Console.WriteLine("Parsing connectionInfo from string: {0}", textString);
-            
+            Console.WriteLine("Parsing connectionInfo from string");
+
             var keyValuePairs = textString.Split("; ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-            
+
             try
             {
                 var keysAndValues = keyValuePairs
@@ -30,15 +31,15 @@ namespace Rebus.AmazonSQS.Tests
                     .ToDictionary(kv => kv.First(), kv => kv.Last());
 
                 return new ConnectionInfo(
-                    keysAndValues["AccessKeyId"],
-                    keysAndValues["SecretAccessKey"],
-                    keysAndValues["RegionEndpoint"]
+                    keysAndValues.GetValue("AccessKeyId"),
+                    keysAndValues.GetValue("SecretAccessKey"),
+                    keysAndValues.GetValue("RegionEndpoint")
                 );
 
             }
             catch (Exception exception)
             {
-                throw new FormatException($"Could not extract access key ID, secret access key, and region endpoint from this: '{textString}' - expected the form 'AccessKeyId=blabla; SecretAccessKey=blablalba; RegionEndpoint=something'", exception);
+                throw new FormatException($"Could not extract access key ID, secret access key, and region endpoint from the given string - expected the form 'AccessKeyId=blabla; SecretAccessKey=blablalba; RegionEndpoint=something'", exception);
             }
         }
 

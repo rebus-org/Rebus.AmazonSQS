@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -13,6 +14,7 @@ using Rebus.Bus;
 using Rebus.Config;
 using Rebus.Exceptions;
 using Rebus.Extensions;
+using Rebus.Internals;
 using Rebus.Logging;
 using Rebus.Messages;
 using Rebus.Threading;
@@ -47,8 +49,6 @@ namespace Rebus.AmazonSQS
         /// </summary>
         public AmazonSQSTransport(string inputQueueAddress, AWSCredentials credentials, AmazonSQSConfig amazonSqsConfig, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory, AmazonSQSTransportOptions options = null)
         {
-            if (credentials == null) throw new ArgumentNullException(nameof(credentials));
-            if (amazonSqsConfig == null) throw new ArgumentNullException(nameof(amazonSqsConfig));
             if (rebusLoggerFactory == null) throw new ArgumentNullException(nameof(rebusLoggerFactory));
 
             _log = rebusLoggerFactory.GetLogger<AmazonSQSTransport>();
@@ -65,8 +65,8 @@ namespace Rebus.AmazonSQS
 
             Address = inputQueueAddress;
 
-            _credentials = credentials;
-            _amazonSqsConfig = amazonSqsConfig;
+            _credentials = credentials ?? throw new ArgumentNullException(nameof(credentials));
+            _amazonSqsConfig = amazonSqsConfig ?? throw new ArgumentNullException(nameof(amazonSqsConfig));
             _asyncTaskFactory = asyncTaskFactory;
             _options = options ?? new AmazonSQSTransportOptions();
         }
@@ -121,7 +121,42 @@ namespace Rebus.AmazonSQS
                 using (var client = new AmazonSQSClient(_credentials, _amazonSqsConfig))
                 {
                     var queueName = GetQueueNameFromAddress(address);
-                    var task = client.CreateQueueAsync(new CreateQueueRequest(queueName));
+
+                // Check if queue exists
+                try
+                {
+                    // See http://docs.aws.amazon.com/sdkfornet/v3/apidocs/items/SQS/TSQSGetQueueUrlRequest.html for options
+                    var getQueueUrlTask = client.GetQueueUrlAsync(new GetQueueUrlRequest(queueName));
+                    AsyncHelpers.RunSync(() => getQueueUrlTask);
+                    var getQueueUrlResponse = getQueueUrlTask.Result;
+                    if (getQueueUrlResponse.HttpStatusCode != HttpStatusCode.OK)
+                    {
+                        throw new Exception($"Could not check for existing queue '{queueName}' - got HTTP {getQueueUrlResponse.HttpStatusCode}");
+                    }
+
+                    // See http://docs.aws.amazon.com/sdkfornet/v3/apidocs/items/SQS/TSQSSetQueueAttributesRequest.html for options
+                    var setAttributesTask = client.SetQueueAttributesAsync(getQueueUrlResponse.QueueUrl, new Dictionary<string, string>
+                    {
+                        ["VisibilityTimeout"] = ((int) _peekLockDuration.TotalSeconds).ToString(CultureInfo.InvariantCulture)
+                    });
+                    AsyncHelpers.RunSync(() => setAttributesTask);
+                    var setAttributesResponse = setAttributesTask.Result;
+                    if (setAttributesResponse.HttpStatusCode != HttpStatusCode.OK)
+                    {
+                        throw new Exception($"Could not set attributes for queue '{queueName}' - got HTTP {setAttributesResponse.HttpStatusCode}");
+                    }
+                }
+                catch (QueueDoesNotExistException)
+                {
+                    // See http://docs.aws.amazon.com/sdkfornet/v3/apidocs/items/SQS/TSQSCreateQueueRequest.html for options
+                    var createQueueRequest = new CreateQueueRequest(queueName)
+                    {
+                        Attributes =
+                        {
+                            ["VisibilityTimeout"] = ((int) _peekLockDuration.TotalSeconds).ToString(CultureInfo.InvariantCulture)
+                        }
+                    };
+                    var task = client.CreateQueueAsync(createQueueRequest);
                     AsyncHelpers.RunSync(() => task);
                     var response = task.Result;
 
@@ -129,7 +164,10 @@ namespace Rebus.AmazonSQS
                     {
                         throw new Exception($"Could not create queue '{queueName}' - got HTTP {response.HttpStatusCode}");
                     }
+                    }
                 }
+
+                
             }
         }
 
@@ -260,14 +298,19 @@ namespace Rebus.AmazonSQS
                             .ToList();
 
                         var destinationUrl = GetDestinationQueueUrlByName(batch.Key, context);
-                        var request = new SendMessageBatchRequest(destinationUrl, entries);
-                        var response = await client.SendMessageBatchAsync(request);
 
-                        if (response.Failed.Any())
+                        foreach (var batchToSend in entries.Batch(10))
                         {
-                            var failed = response.Failed.Select(f => new AmazonSQSException($"Failed {f.Message} with Id={f.Id}, Code={f.Code}, SenderFault={f.SenderFault}"));
+                            var request = new SendMessageBatchRequest(destinationUrl, batchToSend);
+                            var response = await client.SendMessageBatchAsync(request);
 
-                            throw new AggregateException(failed);
+                            if (response.Failed.Any())
+                            {
+                                var failed = response.Failed
+                                    .Select(f => new AmazonSQSException($"Failed {f.Message} with Id={f.Id}, Code={f.Code}, SenderFault={f.SenderFault}"));
+
+                                throw new AggregateException(failed);
+                            }
                         }
                     })
                 );
@@ -353,9 +396,9 @@ namespace Rebus.AmazonSQS
                 {
                     _log.Info("Renewing peek lock for message with ID {messageId}", message.MessageId);
 
-                    await
-                        client.ChangeMessageVisibilityAsync(new ChangeMessageVisibilityRequest(_queueUrl,
-                            message.ReceiptHandle, (int)_peekLockDuration.TotalSeconds));
+                    var request = new ChangeMessageVisibilityRequest(_queueUrl, message.ReceiptHandle, (int) _peekLockDuration.TotalSeconds);
+
+                    await client.ChangeMessageVisibilityAsync(request);
                 },
                 intervalSeconds: (int)_peekLockRenewalInterval.TotalSeconds,
                 prettyInsignificant: true);

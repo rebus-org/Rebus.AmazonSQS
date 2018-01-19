@@ -51,7 +51,7 @@ namespace Rebus.AmazonSQS.Tests
                 .Timeouts(t => t.Register(c => new InMemoryTimeoutManager()))
                 .Start();
 
-            await bus.Defer(TimeSpan.FromSeconds(5), "hej med dig min ven!!!!!");
+            await bus.DeferLocal(TimeSpan.FromSeconds(5), "hej med dig min ven!!!!!");
 
             gotTheString.WaitOrDie(TimeSpan.FromSeconds(10), "Did not receive the string withing 10 s timeout");
         }
@@ -87,7 +87,7 @@ namespace Rebus.AmazonSQS.Tests
                 .Timeouts(t => t.UseExternalTimeoutManager(TimeoutManagerQueueName))
                 .Start();
 
-            await bus.Defer(TimeSpan.FromSeconds(5), "hej med dig min ven!!!!!");
+            await bus.DeferLocal(TimeSpan.FromSeconds(5), "hej med dig min ven!!!!!");
 
             gotTheString.WaitOrDie(TimeSpan.FromSeconds(10), "Did not receive the string withing 10 s timeout");
         }

@@ -30,7 +30,6 @@ namespace Rebus.AmazonSQS
     /// </summary>
     public class AmazonSQSTransport : ITransport, IInitializable
     {
-        const string ClientContextKey = "SQS_Client";
         const string OutgoingMessagesItemsKey = "SQS_OutgoingMessages";
 
         readonly AmazonSQSTransportMessageSerializer _serializer = new AmazonSQSTransportMessageSerializer();
@@ -122,52 +121,52 @@ namespace Rebus.AmazonSQS
                 {
                     var queueName = GetQueueNameFromAddress(address);
 
-                // Check if queue exists
-                try
-                {
-                    // See http://docs.aws.amazon.com/sdkfornet/v3/apidocs/items/SQS/TSQSGetQueueUrlRequest.html for options
-                    var getQueueUrlTask = client.GetQueueUrlAsync(new GetQueueUrlRequest(queueName));
-                    AsyncHelpers.RunSync(() => getQueueUrlTask);
-                    var getQueueUrlResponse = getQueueUrlTask.Result;
-                    if (getQueueUrlResponse.HttpStatusCode != HttpStatusCode.OK)
+                    // Check if queue exists
+                    try
                     {
-                        throw new Exception($"Could not check for existing queue '{queueName}' - got HTTP {getQueueUrlResponse.HttpStatusCode}");
-                    }
+                        // See http://docs.aws.amazon.com/sdkfornet/v3/apidocs/items/SQS/TSQSGetQueueUrlRequest.html for options
+                        var getQueueUrlTask = client.GetQueueUrlAsync(new GetQueueUrlRequest(queueName));
+                        AsyncHelpers.RunSync(() => getQueueUrlTask);
+                        var getQueueUrlResponse = getQueueUrlTask.Result;
+                        if (getQueueUrlResponse.HttpStatusCode != HttpStatusCode.OK)
+                        {
+                            throw new Exception($"Could not check for existing queue '{queueName}' - got HTTP {getQueueUrlResponse.HttpStatusCode}");
+                        }
 
-                    // See http://docs.aws.amazon.com/sdkfornet/v3/apidocs/items/SQS/TSQSSetQueueAttributesRequest.html for options
-                    var setAttributesTask = client.SetQueueAttributesAsync(getQueueUrlResponse.QueueUrl, new Dictionary<string, string>
-                    {
-                        ["VisibilityTimeout"] = ((int) _peekLockDuration.TotalSeconds).ToString(CultureInfo.InvariantCulture)
-                    });
-                    AsyncHelpers.RunSync(() => setAttributesTask);
-                    var setAttributesResponse = setAttributesTask.Result;
-                    if (setAttributesResponse.HttpStatusCode != HttpStatusCode.OK)
-                    {
-                        throw new Exception($"Could not set attributes for queue '{queueName}' - got HTTP {setAttributesResponse.HttpStatusCode}");
+                        // See http://docs.aws.amazon.com/sdkfornet/v3/apidocs/items/SQS/TSQSSetQueueAttributesRequest.html for options
+                        var setAttributesTask = client.SetQueueAttributesAsync(getQueueUrlResponse.QueueUrl, new Dictionary<string, string>
+                        {
+                            ["VisibilityTimeout"] = ((int)_peekLockDuration.TotalSeconds).ToString(CultureInfo.InvariantCulture)
+                        });
+                        AsyncHelpers.RunSync(() => setAttributesTask);
+                        var setAttributesResponse = setAttributesTask.Result;
+                        if (setAttributesResponse.HttpStatusCode != HttpStatusCode.OK)
+                        {
+                            throw new Exception($"Could not set attributes for queue '{queueName}' - got HTTP {setAttributesResponse.HttpStatusCode}");
+                        }
                     }
-                }
-                catch (QueueDoesNotExistException)
-                {
-                    // See http://docs.aws.amazon.com/sdkfornet/v3/apidocs/items/SQS/TSQSCreateQueueRequest.html for options
-                    var createQueueRequest = new CreateQueueRequest(queueName)
+                    catch (QueueDoesNotExistException)
                     {
-                        Attributes =
+                        // See http://docs.aws.amazon.com/sdkfornet/v3/apidocs/items/SQS/TSQSCreateQueueRequest.html for options
+                        var createQueueRequest = new CreateQueueRequest(queueName)
+                        {
+                            Attributes =
                         {
                             ["VisibilityTimeout"] = ((int) _peekLockDuration.TotalSeconds).ToString(CultureInfo.InvariantCulture)
                         }
-                    };
-                    var task = client.CreateQueueAsync(createQueueRequest);
-                    AsyncHelpers.RunSync(() => task);
-                    var response = task.Result;
+                        };
+                        var task = client.CreateQueueAsync(createQueueRequest);
+                        AsyncHelpers.RunSync(() => task);
+                        var response = task.Result;
 
-                    if (response.HttpStatusCode != HttpStatusCode.OK)
-                    {
-                        throw new Exception($"Could not create queue '{queueName}' - got HTTP {response.HttpStatusCode}");
-                    }
+                        if (response.HttpStatusCode != HttpStatusCode.OK)
+                        {
+                            throw new Exception($"Could not create queue '{queueName}' - got HTTP {response.HttpStatusCode}");
+                        }
                     }
                 }
 
-                
+
             }
         }
 
@@ -389,14 +388,14 @@ namespace Rebus.AmazonSQS
             return transportMessage;
         }
 
-        IAsyncTask CreateRenewalTaskForMessage(Message message, AmazonSQSClient client)
+        IAsyncTask CreateRenewalTaskForMessage(Message message, IAmazonSQS client)
         {
             return _asyncTaskFactory.Create($"RenewPeekLock-{message.MessageId}",
                 async () =>
                 {
                     _log.Info("Renewing peek lock for message with ID {messageId}", message.MessageId);
 
-                    var request = new ChangeMessageVisibilityRequest(_queueUrl, message.ReceiptHandle, (int) _peekLockDuration.TotalSeconds);
+                    var request = new ChangeMessageVisibilityRequest(_queueUrl, message.ReceiptHandle, (int)_peekLockDuration.TotalSeconds);
 
                     await client.ChangeMessageVisibilityAsync(request);
                 },
@@ -456,14 +455,9 @@ namespace Rebus.AmazonSQS
             return sentTime;
         }
 
-        AmazonSQSClient GetClientFromTransactionContext(ITransactionContext context)
+        IAmazonSQS GetClientFromTransactionContext(ITransactionContext context)
         {
-            return context.GetOrAdd(ClientContextKey, () =>
-            {
-                var amazonSqsClient = new AmazonSQSClient(_credentials, _amazonSqsConfig);
-                context.OnDisposed(amazonSqsClient.Dispose);
-                return amazonSqsClient;
-            });
+            return _options.GetOrCreateClient(context, _credentials, _amazonSqsConfig);
         }
 
         TransportMessage ExtractTransportMessageFrom(Message message)

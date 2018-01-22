@@ -11,7 +11,7 @@ namespace Rebus.Config
     /// </summary>
     public class AmazonSQSTransportOptions
     {
-        private const string ClientContextKey = "SQS_Client";
+        const string ClientContextKey = "SQS_Client";
 
         /// <summary>
         /// Sets the WaitTimeSeconds on the ReceiveMessage. The default setting is 1, which enables long

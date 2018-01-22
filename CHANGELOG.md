@@ -51,8 +51,13 @@
 
 * Do not create queues when configuration says not to - thanks [robvanpamel]
 
+## 4.1.0
+
+* Add configurable factory method for customizing which implementation of `IAmazonSQS` is used - thanks [dietermijle]
+
 ---
 
+[dietermijle]: https://github.com/dietermijle
 [jonathanyong81]: https://github.com/jonathanyong81
 [micdah]: https://github.com/micdah
 [MooseMagnet]: https://github.com/MooseMagnet

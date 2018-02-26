@@ -30,3 +30,4 @@ AssemblyInfo_Patch.cs
 
 # JetBrains Rider
 .idea/
+*.stackdump

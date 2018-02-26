@@ -55,6 +55,10 @@
 
 * Add configurable factory method for customizing which implementation of `IAmazonSQS` is used - thanks [dietermijle]
 
+## 4.1.1
+
+* Fixed issue where invalid delay value was being sent to SQS.
+
 ---
 
 [dietermijle]: https://github.com/dietermijle

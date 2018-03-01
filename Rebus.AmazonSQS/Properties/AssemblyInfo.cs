@@ -33,4 +33,3 @@ using System.Runtime.CompilerServices;
 //
 [assembly: AssemblyVersion("$version$")]
 [assembly: AssemblyFileVersion("$version$")]
-[assembly: InternalsVisibleTo("Rebus.AmazonSQS.Tests")]

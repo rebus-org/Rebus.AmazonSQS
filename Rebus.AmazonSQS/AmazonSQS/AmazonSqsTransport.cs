@@ -315,7 +315,7 @@ namespace Rebus.AmazonSQS
                 );
         }
 
-        internal int? GetDelaySeconds(IReadOnlyDictionary<string, string> headers)
+        int? GetDelaySeconds(IReadOnlyDictionary<string, string> headers)
         {
             if (!_options.UseNativeDeferredMessages) return null;
 
@@ -328,7 +328,7 @@ namespace Rebus.AmazonSQS
 
             // SQS will only accept delays between 0 and 900 seconds.
             // In the event that the value for deferreduntil is before the current date, the message should be processed immediately. i.e. with a delay of 0 seconds.
-            return delay >= 0 ? delay : 0;
+            return Math.Max(delay, 0);
         }
 
         /// <inheritdoc />

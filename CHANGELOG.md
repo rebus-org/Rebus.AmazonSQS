@@ -57,14 +57,14 @@
 
 ## 4.1.1
 
-* Fixed issue where invalid delay value was being sent to SQS.
+* Fixed issue where invalid delay value was being sent to SQS - thanks [ajacksms] :)
 
 ---
 
+[ajacksms]: https://github.com/ajacksms
 [dietermijle]: https://github.com/dietermijle
 [jonathanyong81]: https://github.com/jonathanyong81
 [micdah]: https://github.com/micdah
 [MooseMagnet]: https://github.com/MooseMagnet
 [mvandevy]: https://github.com/mvandevy
 [robvanpamel]: https://github.com/robvanpamel
-

@@ -126,7 +126,7 @@ namespace Rebus.AmazonSQS
                 try
                 {
                     // See http://docs.aws.amazon.com/sdkfornet/v3/apidocs/items/SQS/TSQSGetQueueUrlRequest.html for options
-                    var getQueueUrlResponse = await _client.GetQueueUrlAsync(new GetQueueUrlRequest(queueName));
+                    var getQueueUrlResponse = await _client.GetQueueUrlAsync(new GetQueueUrlRequest(queueName)).ConfigureAwait(false);
 
                     if (getQueueUrlResponse.HttpStatusCode != HttpStatusCode.OK)
                     {
@@ -137,7 +137,7 @@ namespace Rebus.AmazonSQS
                     var setAttributesResponse = await _client.SetQueueAttributesAsync(getQueueUrlResponse.QueueUrl, new Dictionary<string, string>
                     {
                         ["VisibilityTimeout"] = ((int)_peekLockDuration.TotalSeconds).ToString(CultureInfo.InvariantCulture)
-                    });
+                    }).ConfigureAwait(false);
                     if (setAttributesResponse.HttpStatusCode != HttpStatusCode.OK)
                     {
                         throw new Exception($"Could not set attributes for queue '{queueName}' - got HTTP {setAttributesResponse.HttpStatusCode}");
@@ -154,7 +154,7 @@ namespace Rebus.AmazonSQS
                         }
                     };
 
-                    var response = await _client.CreateQueueAsync(createQueueRequest);
+                    var response = await _client.CreateQueueAsync(createQueueRequest).ConfigureAwait(false);
 
                     if (response.HttpStatusCode != HttpStatusCode.OK)
                     {
@@ -185,13 +185,15 @@ namespace Rebus.AmazonSQS
                     while (true)
                     {
                         var request = new ReceiveMessageRequest(_queueUrl) { MaxNumberOfMessages = 10 };
-                        var response = await _client.ReceiveMessageAsync(request);
+                        var response = await _client.ReceiveMessageAsync(request).ConfigureAwait(false);
 
                         if (!response.Messages.Any()) break;
 
-                        var deleteResponse = await _client.DeleteMessageBatchAsync(_queueUrl, response.Messages
+                        var entries = response.Messages
                             .Select(m => new DeleteMessageBatchRequestEntry(m.MessageId, m.ReceiptHandle))
-                            .ToList());
+                            .ToList();
+
+                        var deleteResponse = await _client.DeleteMessageBatchAsync(_queueUrl, entries).ConfigureAwait(false);
 
                         if (deleteResponse.Failed.Any())
                         {
@@ -241,7 +243,7 @@ namespace Rebus.AmazonSQS
             {
                 var messagesToSend = new ConcurrentQueue<OutgoingMessage>();
 
-                context.OnCommitted(async () => await SendOutgoingMessages(messagesToSend));
+                context.OnCommitted(async () => await SendOutgoingMessages(messagesToSend).ConfigureAwait(false));
 
                 return messagesToSend;
             });
@@ -288,7 +290,7 @@ namespace Rebus.AmazonSQS
                         foreach (var batchToSend in entries.Batch(10))
                         {
                             var request = new SendMessageBatchRequest(destinationUrl, batchToSend);
-                            var response = await _client.SendMessageBatchAsync(request);
+                            var response = await _client.SendMessageBatchAsync(request).ConfigureAwait(false);
 
                             if (response.Failed.Any())
                             {
@@ -299,7 +301,8 @@ namespace Rebus.AmazonSQS
                             }
                         }
                     })
-                );
+                )
+                .ConfigureAwait(false);
         }
 
         int? GetDelaySeconds(IReadOnlyDictionary<string, string> headers)
@@ -339,7 +342,7 @@ namespace Rebus.AmazonSQS
                 MessageAttributeNames = new List<string>(new[] { "All" })
             };
 
-            var response = await _client.ReceiveMessageAsync(request, cancellationToken);
+            var response = await _client.ReceiveMessageAsync(request, cancellationToken).ConfigureAwait(false);
 
             if (!response.Messages.Any()) return null;
 
@@ -353,7 +356,7 @@ namespace Rebus.AmazonSQS
 
                 // if we get this far, we don't want to pass on the cancellation token
                 // ReSharper disable once MethodSupportsCancellation
-                await _client.DeleteMessageAsync(new DeleteMessageRequest(_queueUrl, sqsMessage.ReceiptHandle));
+                await _client.DeleteMessageAsync(new DeleteMessageRequest(_queueUrl, sqsMessage.ReceiptHandle)).ConfigureAwait(false);
             });
 
             context.OnAborted(() =>
@@ -364,7 +367,7 @@ namespace Rebus.AmazonSQS
                 {
                     try
                     {
-                        await _client.ChangeMessageVisibilityAsync(_queueUrl, sqsMessage.ReceiptHandle, 0, cancellationToken);
+                        await _client.ChangeMessageVisibilityAsync(_queueUrl, sqsMessage.ReceiptHandle, 0, cancellationToken).ConfigureAwait(false);
                     }
                     catch (Exception)
                     {
@@ -377,7 +380,7 @@ namespace Rebus.AmazonSQS
             {
                 // if the message is expired , we don't want to pass on the cancellation token
                 // ReSharper disable once MethodSupportsCancellation
-                await _client.DeleteMessageAsync(new DeleteMessageRequest(_queueUrl, sqsMessage.ReceiptHandle));
+                await _client.DeleteMessageAsync(new DeleteMessageRequest(_queueUrl, sqsMessage.ReceiptHandle)).ConfigureAwait(false);
                 return null;
             }
             renewalTask.Start();
@@ -394,7 +397,7 @@ namespace Rebus.AmazonSQS
 
                     var request = new ChangeMessageVisibilityRequest(_queueUrl, message.ReceiptHandle, (int) _peekLockDuration.TotalSeconds);
 
-                    await client.ChangeMessageVisibilityAsync(request);
+                    await client.ChangeMessageVisibilityAsync(request).ConfigureAwait(false);
                 },
                 intervalSeconds: (int) _peekLockRenewalInterval.TotalSeconds,
                 prettyInsignificant: true

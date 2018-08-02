@@ -62,7 +62,7 @@ namespace Rebus.AmazonSQS
                 {
                     try
                     {
-                        await _task();
+                        await _task().ConfigureAwait(false);
                     }
                     catch (Exception exception)
                     {

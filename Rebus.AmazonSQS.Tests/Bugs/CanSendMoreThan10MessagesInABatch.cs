@@ -10,13 +10,14 @@ namespace Rebus.AmazonSQS.Tests.Bugs
     [TestFixture]
     public class CanSendMoreThan10MessagesInABatch : SqsFixtureBase
     {
-        AmazonSQSTransport _transport;
+        AmazonSqsTransport _transport;
         string _inputQueueAddress;
 
         protected override void SetUp()
         {
             _inputQueueAddress = $"queue-{DateTime.Now:yyyyMMdd-HHmmss}";
             _transport = AmazonSqsTransportFactory.CreateTransport(_inputQueueAddress, TimeSpan.FromMinutes(1));
+            Using(_transport);
         }
 
         [TestCase(15)]

@@ -16,7 +16,7 @@ namespace Rebus.AmazonSQS.Tests
         {
             using (var scope = new RebusTransactionScope())
             {
-                await contextAction(AmbientTransactionContext.Current);
+                await contextAction(scope.TransactionContext);
 
                 if (completeTransaction)
                 {

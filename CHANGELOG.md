@@ -59,6 +59,11 @@
 
 * Fixed issue where invalid delay value was being sent to SQS - thanks [ajacksms] :)
 
+## 5.0.0-b01
+
+* Change all use of `AmazonSQSClient` to use instance returned from the options passed to the transport, and keep the instance for its entire lifetime
+* Enable falling back to EC2 roles by leaving out credentials when configuring Rebus
+
 ---
 
 [ajacksms]: https://github.com/ajacksms

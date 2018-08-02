@@ -11,6 +11,12 @@ namespace Rebus.AmazonSQS.Tests
 
         public QueuePurger(string queueName) => _queueName = queueName;
 
-        public void Dispose() => AmazonSqsTransportFactory.CreateTransport(_queueName, TimeSpan.FromMinutes(5)).Purge();
+        public void Dispose()
+        {
+            using (var transport = AmazonSqsTransportFactory.CreateTransport(_queueName, TimeSpan.FromMinutes(5)))
+            {
+                transport.Purge();
+            }
+        }
     }
 }

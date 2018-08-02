@@ -10,11 +10,10 @@ namespace Rebus.AmazonSQS.Tests
     [TestFixture, Category(Category.AmazonSqs)]
     public class AmazonSqsMessageOptions : SqsFixtureBase
     {
-        private AmazonSqsTransportFactory _transportFactory;
+        AmazonSqsTransportFactory _transportFactory;
 
         protected override void SetUp()
         {
-            base.SetUp();
             _transportFactory = new AmazonSqsTransportFactory();
         }
 

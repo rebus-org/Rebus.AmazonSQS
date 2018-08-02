@@ -9,7 +9,7 @@ using Rebus.Config;
 using Rebus.Messages;
 using Rebus.Tests.Contracts;
 using Rebus.Tests.Contracts.Extensions;
-
+using Rebus.Transport;
 #pragma warning disable 1998
 
 namespace Rebus.AmazonSQS.Tests
@@ -17,29 +17,26 @@ namespace Rebus.AmazonSQS.Tests
     [TestFixture, Category(Category.AmazonSqs)]
     public class AmazonSqsTrivialMessageRoundtrip : SqsFixtureBase
     {
-        AmazonSQSTransport _transport;
-        string _brilliantQueueName;
-
-        protected override void SetUp()
-        {
-            _brilliantQueueName = TestConfig.GetName("roundtrippin");
-            _transport = AmazonSqsTransportFactory.CreateTransport(_brilliantQueueName, TimeSpan.FromSeconds(30));
-            _transport.Purge();
-        }
-
         [Test]
         public async Task CanRoundtripSingleMessageWithTransport()
         {
+            var queueName = TestConfig.GetName("roundtrippin-single");
+            var transport = AmazonSqsTransportFactory.CreateTransport(queueName, TimeSpan.FromSeconds(30));
+            
+            Using(transport);
+
             const string positiveGreeting = "hej meeeeed dig min vennnnn!!!!!!111";
 
-            await WithContext(async context =>
+            var transportMessage = new TransportMessage(NewFineHeaders(), Encoding.UTF8.GetBytes(positiveGreeting));
+
+            using (var scope = new RebusTransactionScope())
             {
-                var message = new TransportMessage(NewFineHeaders(), Encoding.UTF8.GetBytes(positiveGreeting));
+                Console.WriteLine($"Sending message to '{queueName}'");
+                await transport.Send(queueName, transportMessage, scope.TransactionContext);
+                await scope.CompleteAsync();
+            }
 
-                await _transport.Send(_brilliantQueueName, message, context);
-            });
-
-            var receivedMessage = await _transport.WaitForNextMessage();
+            var receivedMessage = await transport.WaitForNextMessage();
 
             Assert.That(Encoding.UTF8.GetString(receivedMessage.Body), Is.EqualTo(positiveGreeting));
         }
@@ -47,6 +44,11 @@ namespace Rebus.AmazonSQS.Tests
         [Test]
         public async Task CanRoundtripSingleMessageWithBus()
         {
+            var brilliantQueueName = TestConfig.GetName("roundtrippin-single-bus");
+            var transport = AmazonSqsTransportFactory.CreateTransport(brilliantQueueName, TimeSpan.FromSeconds(30));
+            
+            Using(transport);
+
             using (var activator = new BuiltinHandlerActivator())
             {
                 var gotTheMessage = new ManualResetEvent(false);
@@ -57,7 +59,7 @@ namespace Rebus.AmazonSQS.Tests
                 });
 
                 Configure.With(activator)
-                    .Transport(t => t.Register(c => _transport))
+                    .Transport(t => t.Register(c => transport))
                     .Start();
 
                 await activator.Bus.SendLocal("HAIIIIIIIIIIIIIIIIII!!!!111");

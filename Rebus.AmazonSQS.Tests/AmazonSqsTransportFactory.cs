@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using Amazon.Runtime;
@@ -21,32 +22,7 @@ namespace Rebus.AmazonSQS.Tests
                                                                                                ?? ConnectionInfoFromEnvironmentVariable("rebus2_asqs_connection_string")
                                                                                                ?? Throw("Could not find Amazon Sqs connetion Info!"));
 
-        static string GetFilePath()
-        {
-#if NET45
-            var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            
-#elif NETSTANDARD1_3
-            var baseDirectory = AppContext.BaseDirectory;
-#endif
-            // added because of test run issues on MacOS
-            var indexOfBin = baseDirectory.LastIndexOf("bin", StringComparison.OrdinalIgnoreCase);
-            var connectionStringFileDirectory = baseDirectory.Substring(0, (indexOfBin > 0) ? indexOfBin : baseDirectory.Length);
-            return Path.Combine(connectionStringFileDirectory, "sqs_connectionstring.txt");
-        }
-
-        public ITransport Create(string inputQueueAddress, TimeSpan peeklockDuration, AmazonSQSTransportOptions options = null)
-        {
-            if (inputQueueAddress == null)
-            {
-                // one-way client
-                return CreateTransport(null, peeklockDuration, options);
-            }
-
-            return _queuesToDelete.GetOrAdd(inputQueueAddress, () => CreateTransport(inputQueueAddress, peeklockDuration, options));
-        }
-
-        public static AmazonSQSTransport CreateTransport(string inputQueueAddress, TimeSpan peeklockDuration, AmazonSQSTransportOptions options = null)
+        public static AmazonSqsTransport CreateTransport(string inputQueueAddress, TimeSpan peeklockDuration, AmazonSQSTransportOptions options = null)
         {
             var connectionInfo = ConnectionInfo;
             var amazonSqsConfig = new AmazonSQSConfig { RegionEndpoint = connectionInfo.RegionEndpoint };
@@ -54,10 +30,12 @@ namespace Rebus.AmazonSQS.Tests
             var consoleLoggerFactory = new ConsoleLoggerFactory(false);
             var credentials = new BasicAWSCredentials(connectionInfo.AccessKeyId, connectionInfo.SecretAccessKey);
 
-            var transport = new AmazonSQSTransport(
+            options = options ?? new AmazonSQSTransportOptions();
+
+            options.ClientFactory = () => new AmazonSQSClient(credentials, amazonSqsConfig);
+
+            var transport = new AmazonSqsTransport(
                 inputQueueAddress,
-                credentials, 
-                amazonSqsConfig,
                 consoleLoggerFactory,
                 new TplAsyncTaskFactory(consoleLoggerFactory),
                 options
@@ -68,18 +46,26 @@ namespace Rebus.AmazonSQS.Tests
             return transport;
         }
 
-        public ITransport CreateOneWayClient()
+        readonly ConcurrentStack<IDisposable> _disposables = new ConcurrentStack<IDisposable>();
+        readonly Dictionary<string, AmazonSqsTransport> _queuesToDelete = new Dictionary<string, AmazonSqsTransport>();
+
+        public ITransport Create(string inputQueueAddress, TimeSpan peeklockDuration, AmazonSQSTransportOptions options = null)
         {
-            return Create(null, TimeSpan.FromSeconds(30));
+            if (inputQueueAddress == null)
+            {
+                // one-way client
+                var transport = CreateTransport(null, peeklockDuration, options);
+                _disposables.Push(transport);
+                return transport;
+            }
+
+            return _queuesToDelete.GetOrAdd(inputQueueAddress, () =>
+            {
+                var amazonSQSTransport = CreateTransport(inputQueueAddress, peeklockDuration, options);
+                _disposables.Push(amazonSQSTransport);
+                return amazonSQSTransport;
+            });
         }
-
-        public ITransport Create(string inputQueueAddress)
-        {
-            return Create(inputQueueAddress, TimeSpan.FromSeconds(30));
-        }
-
-        readonly Dictionary<string, AmazonSQSTransport> _queuesToDelete = new Dictionary<string, AmazonSQSTransport>();
-
 
         public void CleanUp()
         {
@@ -97,8 +83,37 @@ namespace Rebus.AmazonSQS.Tests
                     transport.DeleteQueue();
                 }
             }
+
+            while (_disposables.TryPop(out var disposable))
+            {
+                Console.WriteLine($"Disposing {disposable}");
+                disposable.Dispose();
+            }
         }
 
+        public ITransport CreateOneWayClient()
+        {
+            return Create(null, TimeSpan.FromSeconds(30));
+        }
+
+        public ITransport Create(string inputQueueAddress)
+        {
+            return Create(inputQueueAddress, TimeSpan.FromSeconds(30));
+        }
+
+        static string GetFilePath()
+        {
+#if NET45
+            var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+
+#elif NETSTANDARD1_3
+            var baseDirectory = AppContext.BaseDirectory;
+#endif
+            // added because of test run issues on MacOS
+            var indexOfBin = baseDirectory.LastIndexOf("bin", StringComparison.OrdinalIgnoreCase);
+            var connectionStringFileDirectory = baseDirectory.Substring(0, (indexOfBin > 0) ? indexOfBin : baseDirectory.Length);
+            return Path.Combine(connectionStringFileDirectory, "sqs_connectionstring.txt");
+        }
 
         static ConnectionInfo ConnectionInfoFromEnvironmentVariable(string environmentVariableName)
         {

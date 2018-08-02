@@ -3,6 +3,7 @@ using Amazon;
 using Amazon.Runtime;
 using Amazon.SQS;
 using Rebus.AmazonSQS;
+using Rebus.Exceptions;
 using Rebus.Logging;
 using Rebus.Pipeline;
 using Rebus.Pipeline.Receive;
@@ -23,9 +24,25 @@ namespace Rebus.Config
         /// <summary>
         /// Configures Rebus to use Amazon Simple Queue Service as the message transport
         /// </summary>
+        public static void UseAmazonSQS(this StandardConfigurer<ITransport> configurer, string inputQueueAddress, AmazonSQSTransportOptions options = null)
+        {
+            Configure(configurer, inputQueueAddress, GetTransportOptions(options, null, null));
+        }
+
+        /// <summary>
+        /// Configures Rebus to use Amazon Simple Queue Service as the message transport
+        /// </summary>
+        public static void UseAmazonSQS(this StandardConfigurer<ITransport> configurer, string inputQueueAddress, AmazonSQSConfig config, AmazonSQSTransportOptions options = null)
+        {
+            Configure(configurer, inputQueueAddress, GetTransportOptions(options, null, config));
+        }
+
+        /// <summary>
+        /// Configures Rebus to use Amazon Simple Queue Service as the message transport
+        /// </summary>
         public static void UseAmazonSQS(this StandardConfigurer<ITransport> configurer, AWSCredentials credentials, AmazonSQSConfig config, string inputQueueAddress, AmazonSQSTransportOptions options = null)
         {
-            Configure(configurer, credentials, config, inputQueueAddress, options ?? new AmazonSQSTransportOptions());
+            Configure(configurer, inputQueueAddress, GetTransportOptions(options, credentials, config));
         }
 
         /// <summary>
@@ -36,7 +53,7 @@ namespace Rebus.Config
             var config = new AmazonSQSConfig { RegionEndpoint = regionEndpoint };
             var credentials = new BasicAWSCredentials(accessKeyId, secretAccessKey);
 
-            Configure(configurer, credentials, config, inputQueueAddress, options ?? new AmazonSQSTransportOptions());
+            Configure(configurer, inputQueueAddress, GetTransportOptions(options, credentials, config));
         }
 
         /// <summary>
@@ -46,7 +63,7 @@ namespace Rebus.Config
         {
             var credentials = new BasicAWSCredentials(accessKeyId, secretAccessKey);
 
-            Configure(configurer, credentials, config, inputQueueAddress, options ?? new AmazonSQSTransportOptions());
+            Configure(configurer, inputQueueAddress, GetTransportOptions(options, credentials, config));
         }
 
         /// <summary>
@@ -57,7 +74,7 @@ namespace Rebus.Config
             var credentials = new BasicAWSCredentials(accessKeyId, secretAccessKey);
             var config = new AmazonSQSConfig { RegionEndpoint = regionEndpoint };
 
-            ConfigureOneWayClient(configurer, credentials, config, options ?? new AmazonSQSTransportOptions());
+            ConfigureOneWayClient(configurer, GetTransportOptions(options, credentials, config));
         }
 
         /// <summary>
@@ -67,7 +84,7 @@ namespace Rebus.Config
         {
             var credentials = new BasicAWSCredentials(accessKeyId, secretAccessKey);
 
-            ConfigureOneWayClient(configurer, credentials, amazonSqsConfig, options ?? new AmazonSQSTransportOptions());
+            ConfigureOneWayClient(configurer, GetTransportOptions(options, credentials, amazonSqsConfig));
         }
 
         /// <summary>
@@ -75,24 +92,75 @@ namespace Rebus.Config
         /// </summary>
         public static void UseAmazonSQSAsOneWayClient(this StandardConfigurer<ITransport> configurer, AWSCredentials credentials, AmazonSQSConfig config, AmazonSQSTransportOptions options = null)
         {
-            ConfigureOneWayClient(configurer, credentials, config, options ?? new AmazonSQSTransportOptions());
+            ConfigureOneWayClient(configurer, GetTransportOptions(options, credentials, config));
         }
 
         /// <summary>
         /// Configures Rebus to use Amazon Simple Queue Service as the message transport
         /// </summary>
-        public static void UseAmazonSQSAsOneWayClient(this StandardConfigurer<ITransport> configurer, AWSCredentials credentials, RegionEndpoint regionEndpoint, AmazonSQSTransportOptions options = null)
+        public static void UseAmazonSQSAsOneWayClient(this StandardConfigurer<ITransport> configurer, AmazonSQSConfig config, AmazonSQSTransportOptions options = null)
         {
-            var config = new AmazonSQSConfig { RegionEndpoint = regionEndpoint };
-
-            ConfigureOneWayClient(configurer, credentials, config, options ?? new AmazonSQSTransportOptions());
+            ConfigureOneWayClient(configurer, GetTransportOptions(options, null, config));
         }
 
-        static void Configure(StandardConfigurer<ITransport> configurer, AWSCredentials credentials, AmazonSQSConfig config, string inputQueueAddress, AmazonSQSTransportOptions options)
+        /// <summary>
+        /// Configures Rebus to use Amazon Simple Queue Service as the message transport
+        /// </summary>
+        public static void UseAmazonSQSAsOneWayClient(this StandardConfigurer<ITransport> configurer, AmazonSQSTransportOptions options = null)
+        {
+            ConfigureOneWayClient(configurer, GetTransportOptions(options, null, null));
+        }
+
+        static AmazonSQSTransportOptions GetTransportOptions(AmazonSQSTransportOptions options, AWSCredentials credentials, AmazonSQSConfig config)
+        {
+            options = options ?? new AmazonSQSTransportOptions();
+
+            if (options.ClientFactory == null)
+            {
+                options.ClientFactory = GetClientFactory(credentials, config);
+            }
+            else
+            {
+                if (credentials != null || config != null)
+                {
+                    throw new RebusConfigurationException($"Could not configure SQS client, because a client factory was provided at the same time as either AWS credentials and/or SQS config. Please EITHER provide a factory, OR provide the necessary credentials and/or config, OR do not provide anything alltogether to fall back to EC2 roles");
+                }
+            }
+
+            return options;
+        }
+
+        static Func<IAmazonSQS> GetClientFactory(AWSCredentials credentials, AmazonSQSConfig config)
+        {
+            IAmazonSQS CreateClientFromCredentialsAndConfig() => new AmazonSQSClient(credentials, config);
+
+            IAmazonSQS CreateClientFromCredentials() => new AmazonSQSClient(credentials);
+
+            IAmazonSQS CreateClientFromConfig() => new AmazonSQSClient(config);
+
+            IAmazonSQS CreateDefaultClient() => new AmazonSQSClient();
+
+            if (credentials != null && config != null)
+            {
+                return CreateClientFromCredentialsAndConfig;
+            }
+
+            if (credentials != null)
+            {
+                return CreateClientFromCredentials;
+            }
+
+            if (config != null)
+            {
+                return CreateClientFromConfig;
+            }
+
+            return CreateDefaultClient;
+        }
+
+        static void Configure(StandardConfigurer<ITransport> configurer, string inputQueueAddress, AmazonSQSTransportOptions options)
         {
             if (configurer == null) throw new ArgumentNullException(nameof(configurer));
-            if (credentials == null) throw new ArgumentNullException(nameof(credentials));
-            if (config == null) throw new ArgumentNullException(nameof(config));
             if (inputQueueAddress == null) throw new ArgumentNullException(nameof(inputQueueAddress));
             if (options == null) throw new ArgumentNullException(nameof(options));
 
@@ -101,7 +169,7 @@ namespace Rebus.Config
                 var rebusLoggerFactory = c.Get<IRebusLoggerFactory>();
                 var asyncTaskFactory = c.Get<IAsyncTaskFactory>();
 
-                return new AmazonSQSTransport(inputQueueAddress, credentials, config, rebusLoggerFactory, asyncTaskFactory, options);
+                return new AmazonSqsTransport(inputQueueAddress, rebusLoggerFactory, asyncTaskFactory, options);
             });
 
             if (options.UseNativeDeferredMessages)
@@ -121,11 +189,9 @@ namespace Rebus.Config
             }
         }
 
-        static void ConfigureOneWayClient(StandardConfigurer<ITransport> configurer, AWSCredentials credentials, AmazonSQSConfig amazonSqsConfig, AmazonSQSTransportOptions options)
+        static void ConfigureOneWayClient(StandardConfigurer<ITransport> configurer, AmazonSQSTransportOptions options)
         {
             if (configurer == null) throw new ArgumentNullException(nameof(configurer));
-            if (credentials == null) throw new ArgumentNullException(nameof(credentials));
-            if (amazonSqsConfig == null) throw new ArgumentNullException(nameof(amazonSqsConfig));
             if (options == null) throw new ArgumentNullException(nameof(options));
 
             configurer.Register(c =>
@@ -133,7 +199,7 @@ namespace Rebus.Config
                 var rebusLoggerFactory = c.Get<IRebusLoggerFactory>();
                 var asyncTaskFactory = c.Get<IAsyncTaskFactory>();
 
-                return new AmazonSQSTransport(null, credentials, amazonSqsConfig, rebusLoggerFactory, asyncTaskFactory, options);
+                return new AmazonSqsTransport(null, rebusLoggerFactory, asyncTaskFactory, options);
             });
 
             OneWayClientBackdoor.ConfigureOneWayClient(configurer);

@@ -1,7 +1,6 @@
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
-using Amazon;
 using Amazon.Runtime;
 using Amazon.SQS;
 using Rebus.Activation;
@@ -15,7 +14,7 @@ namespace Rebus.AmazonSQS.Tests
 {
     public class AmazonSqsManyMessagesTransportFactory : IBusFactory
     {
-        readonly List<IDisposable> _stuffToDispose = new List<IDisposable>();
+        readonly ConcurrentStack<IDisposable> _stuffToDispose = new ConcurrentStack<IDisposable>();
 
         public IBus GetBus<TMessage>(string inputQueueAddress, Func<TMessage, Task> handler)
         {
@@ -41,7 +40,7 @@ namespace Rebus.AmazonSQS.Tests
                 })
                 .Start();
 
-            _stuffToDispose.Add(bus);
+            _stuffToDispose.Push(bus);
 
             return bus;
         }
@@ -55,11 +54,14 @@ namespace Rebus.AmazonSQS.Tests
 
             var credentials = new BasicAWSCredentials(connectionInfo.AccessKeyId, connectionInfo.SecretAccessKey);
 
-            var transport = new AmazonSQSTransport(
+            var transport = new AmazonSqsTransport(
                 queueName,
-                credentials,
-                amazonSqsConfig, consoleLoggerFactory,
-                new TplAsyncTaskFactory(consoleLoggerFactory)
+                consoleLoggerFactory,
+                new TplAsyncTaskFactory(consoleLoggerFactory),
+                new AmazonSQSTransportOptions
+                {
+                    ClientFactory = () => new AmazonSQSClient(credentials, amazonSqsConfig)
+                }
             );
 
             transport.Purge();
@@ -67,8 +69,11 @@ namespace Rebus.AmazonSQS.Tests
 
         public void Cleanup()
         {
-            _stuffToDispose.ForEach(d => d.Dispose());
-            _stuffToDispose.Clear();
+            while (_stuffToDispose.TryPop(out var disposable))
+            {
+                Console.WriteLine($"Disposing {disposable}");
+                disposable.Dispose();
+            }
         }
     }
 }

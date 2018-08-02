@@ -13,7 +13,6 @@ namespace Rebus.AmazonSQS.Tests
 
         protected override void SetUp()
         {
-            base.SetUp();
             _transportFactory = new AmazonSqsTransportFactory();
 
         }

@@ -275,6 +275,16 @@ namespace Rebus.AmazonSQS
                                 var sqsMessage = new AmazonSQSTransportMessage(transportMessage.Headers, GetBody(transportMessage.Body));
 
                                 var entry = new SendMessageBatchRequestEntry(messageId, _serializer.Serialize(sqsMessage));
+                                
+                                var delaySeconds = GetDelaySeconds(headers);
+
+                                if (delaySeconds != null)
+                                {
+                                    entry.DelaySeconds = delaySeconds.Value;
+                                }
+
+                                if (!Address.EndsWith(".fifo"))
+                                    return entry;
 
                                 if (headers.ContainsKey(MessageGroupIdHeader))
                                 {
@@ -284,13 +294,6 @@ namespace Rebus.AmazonSQS
                                 if (headers.ContainsKey(MessageDeduplicationIdHeader))
                                 {
                                     entry.MessageDeduplicationId = headers[MessageDeduplicationIdHeader];
-                                }
-
-                                var delaySeconds = GetDelaySeconds(headers);
-
-                                if (delaySeconds != null)
-                                {
-                                    entry.DelaySeconds = delaySeconds.Value;
                                 }
 
                                 return entry;

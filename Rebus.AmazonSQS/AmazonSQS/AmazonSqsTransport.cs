@@ -283,7 +283,7 @@ namespace Rebus.AmazonSQS
                                     entry.DelaySeconds = delaySeconds.Value;
                                 }
 
-                                if (!Address.EndsWith(".fifo"))
+                                if (!batch.Key.EndsWith(".fifo"))
                                     return entry;
 
                                 if (headers.ContainsKey(MessageGroupIdHeader))

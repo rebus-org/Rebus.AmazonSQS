@@ -37,7 +37,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Rebus.AmazonSQS\Rebus.AmazonSQS.csproj" />
-    <PackageReference Include="awssdk.sqs" Version="3.3.3.*" />
+    <PackageReference Include="awssdk.sqs" Version="3.3.3.14" />
     <PackageReference Include="nunit" Version="3.7.1" />
     <PackageReference Include="rebus" Version="4.2.*" />
     <PackageReference Include="rebus.tests.contracts" Version="4.2.*" />

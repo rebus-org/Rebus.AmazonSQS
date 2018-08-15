@@ -8,6 +8,13 @@ namespace Rebus.AmazonSQS
 {
     static class AsyncHelpers
     {
+        public static T GetSync<T>(Func<Task<T>> func)
+        {
+            var result = default(T);
+            RunSync(async () => result = await func());
+            return result;
+        }
+
         /// <summary>
         /// Executes a task synchronously on the calling thread by installing a temporary synchronization context that queues continuations
         ///  </summary>
@@ -67,7 +74,6 @@ namespace Rebus.AmazonSQS
                     catch (Exception exception)
                     {
                         _caughtException = ExceptionDispatchInfo.Capture(exception);
-                        throw;
                     }
                     finally
                     {
@@ -77,9 +83,7 @@ namespace Rebus.AmazonSQS
 
                 while (!_done)
                 {
-                    Tuple<SendOrPostCallback, object> task;
-
-                    if (_items.TryDequeue(out task))
+                    if (_items.TryDequeue(out var task))
                     {
                         task.Item1(task.Item2);
 

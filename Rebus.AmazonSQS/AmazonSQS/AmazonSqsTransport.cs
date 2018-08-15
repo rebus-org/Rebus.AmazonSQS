@@ -128,15 +128,16 @@ namespace Rebus.AmazonSQS
                 try
                 {
                     // See http://docs.aws.amazon.com/sdkfornet/v3/apidocs/items/SQS/TSQSGetQueueUrlRequest.html for options
-                    var getQueueUrlResponse = await _client.GetQueueUrlAsync(new GetQueueUrlRequest(queueName)).ConfigureAwait(false);
+                    var request = new GetQueueUrlRequest(queueName);
+                    var response = await _client.GetQueueUrlAsync(request).ConfigureAwait(false);
 
-                    if (getQueueUrlResponse.HttpStatusCode != HttpStatusCode.OK)
+                    if (response.HttpStatusCode != HttpStatusCode.OK)
                     {
-                        throw new Exception($"Could not check for existing queue '{queueName}' - got HTTP {getQueueUrlResponse.HttpStatusCode}");
+                        throw new Exception($"Could not check for existing queue '{queueName}' - got HTTP {response.HttpStatusCode}");
                     }
 
                     // See http://docs.aws.amazon.com/sdkfornet/v3/apidocs/items/SQS/TSQSSetQueueAttributesRequest.html for options
-                    var setAttributesResponse = await _client.SetQueueAttributesAsync(getQueueUrlResponse.QueueUrl, new Dictionary<string, string>
+                    var setAttributesResponse = await _client.SetQueueAttributesAsync(response.QueueUrl, new Dictionary<string, string>
                     {
                         ["VisibilityTimeout"] = ((int)_peekLockDuration.TotalSeconds).ToString(CultureInfo.InvariantCulture)
                     }).ConfigureAwait(false);
@@ -410,11 +411,11 @@ namespace Rebus.AmazonSQS
                 {
                     _log.Info("Renewing peek lock for message with ID {messageId}", message.MessageId);
 
-                    var request = new ChangeMessageVisibilityRequest(_queueUrl, message.ReceiptHandle, (int) _peekLockDuration.TotalSeconds);
+                    var request = new ChangeMessageVisibilityRequest(_queueUrl, message.ReceiptHandle, (int)_peekLockDuration.TotalSeconds);
 
                     await client.ChangeMessageVisibilityAsync(request).ConfigureAwait(false);
                 },
-                intervalSeconds: (int) _peekLockRenewalInterval.TotalSeconds,
+                intervalSeconds: (int)_peekLockRenewalInterval.TotalSeconds,
                 prettyInsignificant: true
             );
         }
@@ -434,7 +435,7 @@ namespace Rebus.AmazonSQS
         static bool MessageIsExpiredUsingRebusSentTime(TransportMessage message, TimeSpan timeToBeReceived)
         {
             if (!message.Headers.TryGetValue(Headers.SentTime, out var rebusUtcTimeSentAttributeValue)) return false;
-            
+
             var rebusUtcTimeSent = DateTimeOffset.ParseExact(rebusUtcTimeSentAttributeValue, "O", null);
 
             return RebusTime.Now.UtcDateTime - rebusUtcTimeSent > timeToBeReceived;
@@ -443,9 +444,9 @@ namespace Rebus.AmazonSQS
         static bool MessageIsExpiredUsingNativeSqsSentTimestamp(Message message, TimeSpan timeToBeReceived)
         {
             if (!message.Attributes.TryGetValue("SentTimestamp", out var sentTimeStampString)) return false;
-            
+
             var sentTime = GetTimeFromUnixTimestamp(sentTimeStampString);
-            
+
             return RebusTime.Now.UtcDateTime - sentTime > timeToBeReceived;
         }
 
@@ -477,27 +478,25 @@ namespace Rebus.AmazonSQS
         {
             var url = _queueUrls.GetOrAdd(address.ToLowerInvariant(), key =>
             {
-                if (Uri.IsWellFormedUriString(address, UriKind.Absolute))
+                return AsyncHelpers.GetSync(async () =>
                 {
-                    return address;
-                }
+                    if (Uri.IsWellFormedUriString(address, UriKind.Absolute))
+                    {
+                        return address;
+                    }
 
-                var task = _client.GetQueueUrlAsync(address);
+                    var response = await _client.GetQueueUrlAsync(address);
 
-                AsyncHelpers.RunSync(() => task);
+                    if (response.HttpStatusCode == HttpStatusCode.OK)
+                    {
+                        return response.QueueUrl;
+                    }
 
-                var urlResponse = task.Result;
-
-                if (urlResponse.HttpStatusCode == HttpStatusCode.OK)
-                {
-                    return urlResponse.QueueUrl;
-                }
-
-                throw new RebusApplicationException($"could not find Url for address: {address} - got errorcode: {urlResponse.HttpStatusCode}");
+                    throw new RebusApplicationException($"could not find Url for address: {address} - got errorcode: {response.HttpStatusCode}");
+                });
             });
 
             return url;
-
         }
 
         static string GetQueueNameFromAddress(string address)

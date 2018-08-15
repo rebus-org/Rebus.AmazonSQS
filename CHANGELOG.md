@@ -59,17 +59,19 @@
 
 * Fixed issue where invalid delay value was being sent to SQS - thanks [ajacksms] :)
 
-## 5.0.0-b02
+## 5.0.0-b03
 
 * Change all use of `AmazonSQSClient` to use instance returned from the options passed to the transport, and keep the instance for its entire lifetime
 * Enable falling back to EC2 roles by leaving out credentials when configuring Rebus
 * `.ConfigureAwait(false)` all the things
+* Allow for using FIFO queues by picking up `MessageGroupId` and `MessageDeduplicationId` from Rebus headers and setting them on queue request entries - thanks [knepe]
 
 ---
 
 [ajacksms]: https://github.com/ajacksms
 [dietermijle]: https://github.com/dietermijle
 [jonathanyong81]: https://github.com/jonathanyong81
+[knepe]: https://github.com/knepe
 [micdah]: https://github.com/micdah
 [MooseMagnet]: https://github.com/MooseMagnet
 [mvandevy]: https://github.com/mvandevy

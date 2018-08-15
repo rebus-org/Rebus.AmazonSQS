@@ -30,6 +30,8 @@ namespace Rebus.AmazonSQS
     public class AmazonSqsTransport : ITransport, IInitializable, IDisposable
     {
         const string OutgoingMessagesItemsKey = "SQS_OutgoingMessages";
+        const string MessageGroupIdHeader = "MessageGroupId";
+        const string MessageDeduplicationIdHeader = "MessageDeduplicationId";
 
         readonly AmazonSQSTransportMessageSerializer _serializer = new AmazonSQSTransportMessageSerializer();
         readonly ConcurrentDictionary<string, string> _queueUrls = new ConcurrentDictionary<string, string>();
@@ -273,12 +275,25 @@ namespace Rebus.AmazonSQS
                                 var sqsMessage = new AmazonSQSTransportMessage(transportMessage.Headers, GetBody(transportMessage.Body));
 
                                 var entry = new SendMessageBatchRequestEntry(messageId, _serializer.Serialize(sqsMessage));
-
+                                
                                 var delaySeconds = GetDelaySeconds(headers);
 
                                 if (delaySeconds != null)
                                 {
                                     entry.DelaySeconds = delaySeconds.Value;
+                                }
+
+                                if (!message.DestinationAddress.EndsWith(".fifo"))
+                                    return entry;
+
+                                if (headers.ContainsKey(MessageGroupIdHeader))
+                                {
+                                    entry.MessageGroupId = headers[MessageGroupIdHeader];
+                                }
+
+                                if (headers.ContainsKey(MessageDeduplicationIdHeader))
+                                {
+                                    entry.MessageDeduplicationId = headers[MessageDeduplicationIdHeader];
                                 }
 
                                 return entry;

@@ -267,38 +267,7 @@ namespace Rebus.AmazonSQS
                     .Select(async batch =>
                     {
                         var entries = batch
-                            .Select(message =>
-                            {
-                                var transportMessage = message.TransportMessage;
-                                var headers = transportMessage.Headers;
-                                var messageId = headers[Headers.MessageId];
-
-                                var sqsMessage = new AmazonSQSTransportMessage(transportMessage.Headers, GetBody(transportMessage.Body));
-
-                                var entry = new SendMessageBatchRequestEntry(messageId, _serializer.Serialize(sqsMessage));
-                                
-                                var delaySeconds = GetDelaySeconds(headers);
-
-                                if (delaySeconds != null)
-                                {
-                                    entry.DelaySeconds = delaySeconds.Value;
-                                }
-
-                                if (!message.DestinationAddress.EndsWith(".fifo"))
-                                    return entry;
-
-                                if (headers.ContainsKey(MessageGroupIdHeader))
-                                {
-                                    entry.MessageGroupId = headers[MessageGroupIdHeader];
-                                }
-
-                                if (headers.ContainsKey(MessageDeduplicationIdHeader))
-                                {
-                                    entry.MessageDeduplicationId = headers[MessageDeduplicationIdHeader];
-                                }
-
-                                return entry;
-                            })
+                            .Select(GetBatchRequestEntry)
                             .ToList();
 
                         var destinationUrl = GetDestinationQueueUrlByName(batch.Key);
@@ -319,6 +288,39 @@ namespace Rebus.AmazonSQS
                     })
                 )
                 .ConfigureAwait(false);
+        }
+
+        SendMessageBatchRequestEntry GetBatchRequestEntry(OutgoingMessage message)
+        {
+            var transportMessage = message.TransportMessage;
+            var headers = transportMessage.Headers;
+            var messageId = headers[Headers.MessageId];
+
+            var sqsMessage = new AmazonSQSTransportMessage(transportMessage.Headers, GetBody(transportMessage.Body));
+
+            var entry = new SendMessageBatchRequestEntry(messageId, _serializer.Serialize(sqsMessage));
+
+            var delaySeconds = GetDelaySeconds(headers);
+
+            if (delaySeconds != null)
+            {
+                entry.DelaySeconds = delaySeconds.Value;
+            }
+
+            if (message.DestinationAddress.EndsWith(".fifo"))
+            {
+                if (headers.ContainsKey(MessageGroupIdHeader))
+                {
+                    entry.MessageGroupId = headers[MessageGroupIdHeader];
+                }
+
+                if (headers.ContainsKey(MessageDeduplicationIdHeader))
+                {
+                    entry.MessageDeduplicationId = headers[MessageDeduplicationIdHeader];
+                }
+            }
+
+            return entry;
         }
 
         int? GetDelaySeconds(IReadOnlyDictionary<string, string> headers)

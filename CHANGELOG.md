@@ -63,7 +63,6 @@
 
 * Change all use of `AmazonSQSClient` to use instance returned from the options passed to the transport, and keep the instance for its entire lifetime
 * Enable falling back to EC2 roles by leaving out credentials when configuring Rebus
-* `.ConfigureAwait(false)` all the things
 * Allow for using FIFO queues by picking up `MessageGroupId` and `MessageDeduplicationId` from Rebus headers and setting them on queue request entries - thanks [knepe]
 
 ---

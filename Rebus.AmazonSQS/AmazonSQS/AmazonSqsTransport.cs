@@ -37,6 +37,7 @@ namespace Rebus.AmazonSQS
         readonly ConcurrentDictionary<string, string> _queueUrls = new ConcurrentDictionary<string, string>();
         readonly IAsyncTaskFactory _asyncTaskFactory;
         readonly AmazonSQSTransportOptions _options;
+        readonly IRebusTime _rebusTime;
         readonly ILog _log;
         readonly IAmazonSQS _client;
 
@@ -48,11 +49,12 @@ namespace Rebus.AmazonSQS
         /// <summary>
         /// Constructs the transport with the specified settings
         /// </summary>
-        public AmazonSqsTransport(string inputQueueAddress, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory, AmazonSQSTransportOptions options)
+        public AmazonSqsTransport(string inputQueueAddress, IRebusLoggerFactory rebusLoggerFactory, IAsyncTaskFactory asyncTaskFactory, AmazonSQSTransportOptions options, IRebusTime rebusTime)
         {
             if (rebusLoggerFactory == null) throw new ArgumentNullException(nameof(rebusLoggerFactory));
 
             _options = options ?? throw new ArgumentNullException(nameof(options));
+            _rebusTime = rebusTime ?? throw new ArgumentNullException(nameof(rebusTime));
             _asyncTaskFactory = asyncTaskFactory ?? throw new ArgumentNullException(nameof(asyncTaskFactory));
             _log = rebusLoggerFactory.GetLogger<AmazonSqsTransport>();
 
@@ -246,7 +248,7 @@ namespace Rebus.AmazonSQS
             {
                 var messagesToSend = new ConcurrentQueue<OutgoingMessage>();
 
-                context.OnCommitted(async () => await SendOutgoingMessages(messagesToSend));
+                context.OnCommitted(async ctx => await SendOutgoingMessages(messagesToSend));
 
                 return messagesToSend;
             });
@@ -330,7 +332,7 @@ namespace Rebus.AmazonSQS
 
             var deferUntilDateTimeOffset = deferUntilTime.ToDateTimeOffset();
 
-            var delay = (int)Math.Ceiling((deferUntilDateTimeOffset - RebusTime.Now).TotalSeconds);
+            var delay = (int)Math.Ceiling((deferUntilDateTimeOffset - _rebusTime.Now).TotalSeconds);
 
             // SQS will only accept delays between 0 and 900 seconds.
             // In the event that the value for deferreduntil is before the current date, the message should be processed immediately. i.e. with a delay of 0 seconds.
@@ -367,7 +369,7 @@ namespace Rebus.AmazonSQS
 
             var renewalTask = CreateRenewalTaskForMessage(sqsMessage, _client);
 
-            context.OnCompleted(async () =>
+            context.OnCompleted(async ctx =>
             {
                 renewalTask.Dispose();
 
@@ -376,7 +378,7 @@ namespace Rebus.AmazonSQS
                 await _client.DeleteMessageAsync(new DeleteMessageRequest(_queueUrl, sqsMessage.ReceiptHandle));
             });
 
-            context.OnAborted(() =>
+            context.OnAborted(ctx =>
             {
                 renewalTask.Dispose();
 
@@ -421,7 +423,7 @@ namespace Rebus.AmazonSQS
             );
         }
 
-        static bool MessageIsExpired(TransportMessage message, Message sqsMessage)
+        bool MessageIsExpired(TransportMessage message, Message sqsMessage)
         {
             if (!message.Headers.TryGetValue(Headers.TimeToBeReceived, out var value)) return false;
 
@@ -433,22 +435,22 @@ namespace Rebus.AmazonSQS
             return false;
         }
 
-        static bool MessageIsExpiredUsingRebusSentTime(TransportMessage message, TimeSpan timeToBeReceived)
+        bool MessageIsExpiredUsingRebusSentTime(TransportMessage message, TimeSpan timeToBeReceived)
         {
             if (!message.Headers.TryGetValue(Headers.SentTime, out var rebusUtcTimeSentAttributeValue)) return false;
 
             var rebusUtcTimeSent = DateTimeOffset.ParseExact(rebusUtcTimeSentAttributeValue, "O", null);
 
-            return RebusTime.Now.UtcDateTime - rebusUtcTimeSent > timeToBeReceived;
+            return _rebusTime.Now.UtcDateTime - rebusUtcTimeSent > timeToBeReceived;
         }
 
-        static bool MessageIsExpiredUsingNativeSqsSentTimestamp(Message message, TimeSpan timeToBeReceived)
+        bool MessageIsExpiredUsingNativeSqsSentTimestamp(Message message, TimeSpan timeToBeReceived)
         {
             if (!message.Attributes.TryGetValue("SentTimestamp", out var sentTimeStampString)) return false;
 
             var sentTime = GetTimeFromUnixTimestamp(sentTimeStampString);
 
-            return RebusTime.Now.UtcDateTime - sentTime > timeToBeReceived;
+            return _rebusTime.Now.UtcDateTime - sentTime > timeToBeReceived;
         }
 
         static DateTime GetTimeFromUnixTimestamp(string sentTimeStampString)

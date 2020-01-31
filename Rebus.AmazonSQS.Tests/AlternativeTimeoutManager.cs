@@ -7,6 +7,7 @@ using Rebus.Config;
 using Rebus.Persistence.InMem;
 using Rebus.Tests.Contracts;
 using Rebus.Tests.Contracts.Extensions;
+using Rebus.Time;
 using Rebus.Timeouts;
 
 #pragma warning disable 1998
@@ -48,7 +49,7 @@ namespace Rebus.AmazonSQS.Tests
                 {
                     UseNativeDeferredMessages = false
                 }))
-                .Timeouts(t => t.Register(c => new InMemoryTimeoutManager()))
+                .Timeouts(t => t.Register(c => new InMemoryTimeoutManager(c.Get<IRebusTime>())))
                 .Start();
 
             await bus.DeferLocal(TimeSpan.FromSeconds(5), "hej med dig min ven!!!!!");
@@ -67,7 +68,7 @@ namespace Rebus.AmazonSQS.Tests
                 {
                     UseNativeDeferredMessages = false
                 }))
-                .Timeouts(t => t.Register(c => new InMemoryTimeoutManager()))
+                .Timeouts(t => t.Register(c => new InMemoryTimeoutManager(c.Get<IRebusTime>())))
                 .Start();
 
             var gotTheString = new ManualResetEvent(false);

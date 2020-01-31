@@ -8,6 +8,7 @@ using Rebus.Logging;
 using Rebus.Pipeline;
 using Rebus.Pipeline.Receive;
 using Rebus.Threading;
+using Rebus.Time;
 using Rebus.Timeouts;
 using Rebus.Transport;
 // ReSharper disable ArgumentsStyleNamedExpression
@@ -168,8 +169,9 @@ namespace Rebus.Config
             {
                 var rebusLoggerFactory = c.Get<IRebusLoggerFactory>();
                 var asyncTaskFactory = c.Get<IAsyncTaskFactory>();
+                var rebusTime = c.Get<IRebusTime>();
 
-                return new AmazonSqsTransport(inputQueueAddress, rebusLoggerFactory, asyncTaskFactory, options);
+                return new AmazonSqsTransport(inputQueueAddress, rebusLoggerFactory, asyncTaskFactory, options, rebusTime);
             });
 
             if (options.UseNativeDeferredMessages)
@@ -198,8 +200,9 @@ namespace Rebus.Config
             {
                 var rebusLoggerFactory = c.Get<IRebusLoggerFactory>();
                 var asyncTaskFactory = c.Get<IAsyncTaskFactory>();
+                var rebusTime = c.Get<IRebusTime>();
 
-                return new AmazonSqsTransport(null, rebusLoggerFactory, asyncTaskFactory, options);
+                return new AmazonSqsTransport(null, rebusLoggerFactory, asyncTaskFactory, options, rebusTime);
             });
 
             OneWayClientBackdoor.ConfigureOneWayClient(configurer);

@@ -9,6 +9,7 @@ using Rebus.Config;
 using Rebus.Logging;
 using Rebus.Tests.Contracts.Transports;
 using Rebus.Threading.TaskParallelLibrary;
+using Rebus.Time;
 
 namespace Rebus.AmazonSQS.Tests
 {
@@ -61,7 +62,8 @@ namespace Rebus.AmazonSQS.Tests
                 new AmazonSQSTransportOptions
                 {
                     ClientFactory = () => new AmazonSQSClient(credentials, amazonSqsConfig)
-                }
+                },
+                new DefaultRebusTime()
             );
 
             transport.Purge();

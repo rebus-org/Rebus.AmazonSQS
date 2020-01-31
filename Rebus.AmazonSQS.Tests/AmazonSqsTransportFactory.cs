@@ -10,6 +10,7 @@ using Rebus.Extensions;
 using Rebus.Logging;
 using Rebus.Tests.Contracts.Transports;
 using Rebus.Threading.TaskParallelLibrary;
+using Rebus.Time;
 using Rebus.Transport;
 
 namespace Rebus.AmazonSQS.Tests
@@ -18,9 +19,9 @@ namespace Rebus.AmazonSQS.Tests
     {
         static ConnectionInfo _connectionInfo;
 
-        internal static ConnectionInfo ConnectionInfo => _connectionInfo ?? (_connectionInfo = ConnectionInfoFromFileOrNull(GetFilePath())
-                                                                                               ?? ConnectionInfoFromEnvironmentVariable("rebus2_asqs_connection_string")
-                                                                                               ?? Throw("Could not find Amazon Sqs connetion Info!"));
+        internal static ConnectionInfo ConnectionInfo => _connectionInfo ??= ConnectionInfoFromFileOrNull(GetFilePath())
+                                                                             ?? ConnectionInfoFromEnvironmentVariable("rebus2_asqs_connection_string")
+                                                                             ?? Throw("Could not find Amazon Sqs connetion Info!");
 
         public static AmazonSqsTransport CreateTransport(string inputQueueAddress, TimeSpan peeklockDuration, AmazonSQSTransportOptions options = null)
         {
@@ -30,7 +31,7 @@ namespace Rebus.AmazonSQS.Tests
             var consoleLoggerFactory = new ConsoleLoggerFactory(false);
             var credentials = new BasicAWSCredentials(connectionInfo.AccessKeyId, connectionInfo.SecretAccessKey);
 
-            options = options ?? new AmazonSQSTransportOptions();
+            options ??= new AmazonSQSTransportOptions();
 
             options.ClientFactory = () => new AmazonSQSClient(credentials, amazonSqsConfig);
 
@@ -38,7 +39,8 @@ namespace Rebus.AmazonSQS.Tests
                 inputQueueAddress,
                 consoleLoggerFactory,
                 new TplAsyncTaskFactory(consoleLoggerFactory),
-                options
+                options,
+                new DefaultRebusTime()
             );
 
             transport.Initialize(peeklockDuration);
@@ -103,12 +105,8 @@ namespace Rebus.AmazonSQS.Tests
 
         static string GetFilePath()
         {
-#if NET45
-            var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-
-#elif NETSTANDARD1_3
             var baseDirectory = AppContext.BaseDirectory;
-#endif
+
             // added because of test run issues on MacOS
             var indexOfBin = baseDirectory.LastIndexOf("bin", StringComparison.OrdinalIgnoreCase);
             var connectionStringFileDirectory = baseDirectory.Substring(0, (indexOfBin > 0) ? indexOfBin : baseDirectory.Length);

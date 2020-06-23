@@ -43,7 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AWSSDK.SecurityToken" Version="3.3.105.17" />
-    <PackageReference Include="awssdk.sqs" Version="3.3.102.128" />
+    <PackageReference Include="awssdk.sqs" Version="3.3.103" />
     <PackageReference Include="Rebus" Version="6.3.1" />
   </ItemGroup>
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">

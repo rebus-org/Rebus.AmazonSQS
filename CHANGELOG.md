@@ -54,10 +54,14 @@
 ## 6.0.0
 * Update to Rebus 6
 
+## 6.1.0
+* Update aqssdk.sqs to 3.3.103 and Rebus to 6.3.1 - thanks [jcmdsbr]
+
 ---
 
 [ajacksms]: https://github.com/ajacksms
 [dietermijle]: https://github.com/dietermijle
+[jcmdsbr]: https://github.com/jcmdsbr
 [jonathanyong81]: https://github.com/jonathanyong81
 [knepe]: https://github.com/knepe
 [micdah]: https://github.com/micdah

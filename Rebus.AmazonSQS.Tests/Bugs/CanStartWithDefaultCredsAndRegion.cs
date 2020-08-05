@@ -23,7 +23,7 @@ namespace Rebus.AmazonSQS.Tests.Bugs
 
             Using(activator);
 
-            activator.Handle<string>(async str => gotTheString.Set());
+            activator.Handle<string>( async str => await Task.FromResult(gotTheString.Set()));
 
             Configure.With(activator)
                 .Transport(t =>

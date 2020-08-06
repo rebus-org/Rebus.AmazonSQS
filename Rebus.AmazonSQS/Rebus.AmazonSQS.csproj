@@ -17,6 +17,7 @@
     <RepositoryUrl>https://github.com/rebus-org/Rebus.AmazonSQS</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageIcon>little_rebusbus2_copy-500x500.png</PackageIcon>
+    <PackageId>Rebus.AmazonSqs</PackageId>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

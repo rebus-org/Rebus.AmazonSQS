@@ -11,11 +11,12 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://rebus.fm/what-is-rebus/</PackageProjectUrl>
     <Copyright>Copyright 2012-2016</Copyright>
-    <PackageTags>rebus events</PackageTags>
-    <PackageIconUrl>https://github.com/mookid8000/Rebus/raw/master/artwork/little_rebusbus2_copy-200x200.png</PackageIconUrl>
+    <PackageTags>rebus sqs queue messageing</PackageTags>
+    <PackageIconUrl></PackageIconUrl>
     <PackageDescription>Provides an Amazon SQS transport for Rebus</PackageDescription>
-    <RepositoryUrl>https://github.com/rebus-org/Rebus</RepositoryUrl>
+    <RepositoryUrl>https://github.com/rebus-org/Rebus.AmazonSQS</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <PackageIcon>little_rebusbus2_copy-500x500.png</PackageIcon>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -41,5 +42,11 @@
     <PackageReference Include="AWSSDK.SecurityToken" Version="3.3.105.38" />
     <PackageReference Include="awssdk.sqs" Version="3.3.103.21" />
     <PackageReference Include="Rebus" Version="6.3.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\artwork\little_rebusbus2_copy-500x500.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 </Project>

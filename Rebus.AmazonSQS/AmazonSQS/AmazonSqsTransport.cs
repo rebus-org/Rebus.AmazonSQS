@@ -253,7 +253,17 @@ namespace Rebus.AmazonSQS
                 return messagesToSend;
             });
 
-            outgoingMessages.Enqueue(new OutgoingMessage(destinationAddress, message));
+            outgoingMessages.Enqueue(new OutgoingMessage(GetActualDestinationAddress(destinationAddress, message), message));
+        }
+
+        string GetActualDestinationAddress(string destinationAddress, TransportMessage message)
+        {
+            if (_options.UseNativeDeferredMessages && message.Headers.TryGetValue(Headers.DeferredRecipient, out var deferredRecipient))
+            {
+                return deferredRecipient;
+            }
+
+            return destinationAddress;
         }
 
         async Task SendOutgoingMessages(ConcurrentQueue<OutgoingMessage> outgoingMessages)

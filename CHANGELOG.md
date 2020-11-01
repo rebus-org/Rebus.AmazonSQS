@@ -60,6 +60,9 @@
 ## 6.1.1
 * Update aqssdk.sqs to 3.3.103.21 - thanks [jcmdsbr]
 
+## 6.1.2
+* Fix bug that would cause deferred messages to not adhere to Rebus' routing configuration
+
 ---
 
 [ajacksms]: https://github.com/ajacksms

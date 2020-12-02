@@ -42,11 +42,11 @@
     <None Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="AWSSDK.SecurityToken" Version="3.3.105.38" />
-    <PackageReference Include="awssdk.sqs" Version="3.3.103.21" />
-    <PackageReference Include="Rebus" Version="6.3.1" />
+    <PackageReference Include="AWSSDK.SecurityToken" Version="3.5.1.25" />
+    <PackageReference Include="awssdk.sqs" Version="3.5.0.45" />
+    <PackageReference Include="Rebus" Version="6.4.1" />
   </ItemGroup>
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="$(ProjectDir)..\scripts\patch_assemblyinfo.cmd $(ProjectDir)" />
-  </Target>
+    <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+        <Exec Command="$(ProjectDir)..\scripts\patch_assemblyinfo.cmd $(ProjectDir)" />
+    </Target>
 </Project>

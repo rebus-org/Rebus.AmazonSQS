@@ -9,6 +9,8 @@ namespace Rebus.Config
     /// </summary>
     public class AmazonSQSTransportOptions
     {
+        private ushort _messageBatchSize = 10;
+
         /// <summary>
         /// Sets the WaitTimeSeconds on the ReceiveMessage. The default setting is 1, which enables long
         /// polling for a single second. The number of seconds can be set up to 20 seconds. 
@@ -30,6 +32,26 @@ namespace Rebus.Config
         /// Defaults to <code>true</code>.
         /// </summary>
         public bool CreateQueues { get; set; }
+
+        /// <summary>
+        /// Sets the MessageBatchSize for sending batch messages to SQS. 
+        /// Value of BatchSize can be set up to 10.
+        /// Defaults to <code>10</code>.
+        /// </summary>
+        public ushort MessageBatchSize
+        {
+            get
+            {
+                return _messageBatchSize;
+            }
+            set
+            {
+                if (value > 0 && value <= 10)
+                {
+                    _messageBatchSize = value;
+                }
+            }
+        }
 
         /// <summary>
         /// Default constructor of the exposed SQS transport options.

@@ -63,6 +63,9 @@
 ## 6.1.2
 * Fix bug that would cause deferred messages to not adhere to Rebus' routing configuration
 
+## 6.2.0
+* Make outgoing message batch size configurable - thanks [dietermijle]
+
 ---
 
 [ajacksms]: https://github.com/ajacksms

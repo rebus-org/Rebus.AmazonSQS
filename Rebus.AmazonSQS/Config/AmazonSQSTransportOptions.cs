@@ -47,7 +47,7 @@ namespace Rebus.Config
             set
             {
                 if (value == ushort.MinValue || value > 10)
-                    throw new ArgumentOutOfRangeException(nameof(MessageBatchSize), "MessageBatchSize must be between 1 and 10.");
+                    throw new ArgumentOutOfRangeException(nameof(MessageBatchSize), value, "MessageBatchSize must be between 1 and 10.");
 
                 _messageBatchSize = value;
             }

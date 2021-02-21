@@ -11,7 +11,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://rebus.fm/what-is-rebus/</PackageProjectUrl>
     <Copyright>Copyright 2012-2016</Copyright>
-    <PackageTags>rebus sqs queue messageing</PackageTags>
+    <PackageTags>rebus sqs queue messaging</PackageTags>
     <PackageIconUrl></PackageIconUrl>
     <PackageDescription>Provides an Amazon SQS transport for Rebus</PackageDescription>
     <RepositoryUrl>https://github.com/rebus-org/Rebus.AmazonSQS</RepositoryUrl>

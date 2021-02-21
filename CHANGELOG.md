@@ -66,6 +66,10 @@
 ## 6.2.0
 * Make outgoing message batch size configurable - thanks [dietermijle]
 
+## 6.3.0
+* Update awssdk.sqs dependency to 3.5.1.20
+* Remove dependency on that funny security token nuggie
+
 ---
 
 [ajacksms]: https://github.com/ajacksms

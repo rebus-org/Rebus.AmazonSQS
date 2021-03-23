@@ -55,7 +55,7 @@ namespace Rebus.AmazonSQS.Tests
 
             var credentials = new BasicAWSCredentials(connectionInfo.AccessKeyId, connectionInfo.SecretAccessKey);
 
-            var transport = new AmazonSqsTransport(
+            using var transport = new AmazonSqsTransport(
                 queueName,
                 consoleLoggerFactory,
                 new TplAsyncTaskFactory(consoleLoggerFactory),

@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26228.4
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31112.23
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "stuff", "stuff", "{1ABDD7C1-1F8D-402D-8692-3E4B66962DE0}"
 	ProjectSection(SolutionItems) = preProject
@@ -10,9 +10,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "stuff", "stuff", "{1ABDD7C1
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rebus.AmazonSQS", "Rebus.AmazonSQS\Rebus.AmazonSQS.csproj", "{5943A487-5B6C-43CC-AD31-8AC4AA3CA5D9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Rebus.AmazonSQS", "Rebus.AmazonSQS\Rebus.AmazonSQS.csproj", "{5943A487-5B6C-43CC-AD31-8AC4AA3CA5D9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rebus.AmazonSQS.Tests", "Rebus.AmazonSQS.Tests\Rebus.AmazonSQS.Tests.csproj", "{FD39B818-74CA-4612-A65B-37886CC0C26E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Rebus.AmazonSQS.Tests", "Rebus.AmazonSQS.Tests\Rebus.AmazonSQS.Tests.csproj", "{FD39B818-74CA-4612-A65B-37886CC0C26E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,5 +31,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F227BCF5-B252-48EF-9010-157B0C8828DE}
 	EndGlobalSection
 EndGlobal

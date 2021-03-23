@@ -34,8 +34,8 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="rebus" Version="6.3.1" />
     <PackageReference Include="rebus.tests.contracts" Version="6.0.0" />
+    <PackageReference Include="Rebus" Version="6.3.1" />
   </ItemGroup>
   <ItemGroup>
     <None Update="sqs_connectionstring.txt">

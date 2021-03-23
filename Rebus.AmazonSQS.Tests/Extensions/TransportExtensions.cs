@@ -8,7 +8,7 @@ using Rebus.Transport;
 
 namespace Rebus.AmazonSQS.Tests.Extensions
 {
-    public static class TransportExtensions
+    static class TransportExtensions
     {
         public static async Task<List<TransportMessage>> ReceiveAll(this ITransport transport, int quietTimeSeconds = 2)
         {

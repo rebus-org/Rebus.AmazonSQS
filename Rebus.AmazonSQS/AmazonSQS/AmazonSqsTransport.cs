@@ -20,6 +20,7 @@ using Rebus.Threading;
 using Rebus.Time;
 using Rebus.Transport;
 using Message = Amazon.SQS.Model.Message;
+// ReSharper disable EmptyGeneralCatchClause
 #pragma warning disable 1998
 
 namespace Rebus.AmazonSQS
@@ -191,7 +192,6 @@ namespace Rebus.AmazonSQS
                     {
                         var request = new ReceiveMessageRequest(_queueUrl) { MaxNumberOfMessages = 10 };
                         var response = await _client.ReceiveMessageAsync(request);
-
                         if (!response.Messages.Any()) break;
 
                         var entries = response.Messages
@@ -199,14 +199,12 @@ namespace Rebus.AmazonSQS
                             .ToList();
 
                         var deleteResponse = await _client.DeleteMessageBatchAsync(_queueUrl, entries);
+                        if (!deleteResponse.Failed.Any()) continue;
 
-                        if (deleteResponse.Failed.Any())
-                        {
-                            var errors = string.Join(Environment.NewLine,
-                                deleteResponse.Failed.Select(f => $"{f.Message} ({f.Id})"));
+                        var errors = string.Join(Environment.NewLine,
+                            deleteResponse.Failed.Select(f => $"{f.Message} ({f.Id})"));
 
-                            throw new RebusApplicationException($@"Error {deleteResponse.HttpStatusCode} while purging: {errors}");
-                        }
+                        throw new RebusApplicationException($@"Error {deleteResponse.HttpStatusCode} while purging: {errors}");
                     }
 
                 });
@@ -260,6 +258,7 @@ namespace Rebus.AmazonSQS
         {
             if (_options.UseNativeDeferredMessages && message.Headers.TryGetValue(Headers.DeferredRecipient, out var deferredRecipient))
             {
+                message.Headers.Remove(Headers.DeferredRecipient);
                 return deferredRecipient;
             }
 

@@ -70,6 +70,9 @@
 * Update awssdk.sqs dependency to 3.5.1.20
 * Remove dependency on that funny security token nuggie
 
+## 6.3.1
+* Fix bug that would cause inability to manually dead-letter messages
+
 ---
 
 [ajacksms]: https://github.com/ajacksms

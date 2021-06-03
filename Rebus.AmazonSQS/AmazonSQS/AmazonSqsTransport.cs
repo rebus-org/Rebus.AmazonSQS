@@ -370,7 +370,7 @@ namespace Rebus.AmazonSQS
                 MessageAttributeNames = new List<string>(new[] { "All" })
             };
 
-            var response = await _client.ReceiveMessageAsync(request, cancellationToken);
+            var response = await _client.ReceiveMessageAsync(request, CancellationToken.None);
 
             if (!response.Messages.Any()) return null;
 

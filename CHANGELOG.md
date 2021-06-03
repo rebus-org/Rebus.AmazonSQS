@@ -73,6 +73,9 @@
 ## 6.3.1
 * Fix bug that would cause inability to manually dead-letter messages
 
+## 6.3.2
+* Pass `CancellationToken.None` to receive call of SQS client, to avoid leaving unacked message on the server when shutting down - thanks [xhafan]
+
 ---
 
 [ajacksms]: https://github.com/ajacksms
@@ -84,3 +87,4 @@
 [MooseMagnet]: https://github.com/MooseMagnet
 [mvandevy]: https://github.com/mvandevy
 [robvanpamel]: https://github.com/robvanpamel
+[xhafan]: https://github.com/xhafan

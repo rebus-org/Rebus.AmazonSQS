@@ -115,7 +115,7 @@ public static class AmazonSQSConfigurationExtensions
 
     static AmazonSQSTransportOptions GetTransportOptions(AmazonSQSTransportOptions options, AWSCredentials credentials, AmazonSQSConfig config)
     {
-        options = options ?? new AmazonSQSTransportOptions();
+        options ??= new AmazonSQSTransportOptions();
 
         if (options.ClientFactory == null)
         {

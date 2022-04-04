@@ -10,59 +10,58 @@ using Rebus.Tests.Contracts.Extensions;
 
 #pragma warning disable 1998
 
-namespace Rebus.AmazonSQS.Tests
+namespace Rebus.AmazonSQS.Tests;
+
+[TestFixture, Category(Category.AmazonSqs)]
+public class DeferMessageTest : SqsFixtureBase
 {
-    [TestFixture, Category(Category.AmazonSqs)]
-    public class DeferMessageTest : SqsFixtureBase
+    BuiltinHandlerActivator _activator;
+    RebusConfigurer _configurer;
+
+    protected override void SetUp()
     {
-        BuiltinHandlerActivator _activator;
-        RebusConfigurer _configurer;
+        var connectionInfo = AmazonSqsTransportFactory.ConnectionInfo;
 
-        protected override void SetUp()
+        var accessKeyId = connectionInfo.AccessKeyId;
+        var secretAccessKey = connectionInfo.SecretAccessKey;
+        var amazonSqsConfig = new AmazonSQSConfig
         {
-            var connectionInfo = AmazonSqsTransportFactory.ConnectionInfo;
+            RegionEndpoint = connectionInfo.RegionEndpoint
+        };
 
-            var accessKeyId = connectionInfo.AccessKeyId;
-            var secretAccessKey = connectionInfo.SecretAccessKey;
-            var amazonSqsConfig = new AmazonSQSConfig
-            {
-                RegionEndpoint = connectionInfo.RegionEndpoint
-            };
+        var queueName = TestConfig.GetName("defertest");
 
-            var queueName = TestConfig.GetName("defertest");
+        AmazonSqsManyMessagesTransportFactory.PurgeQueue(queueName);
 
-            AmazonSqsManyMessagesTransportFactory.PurgeQueue(queueName);
+        _activator = Using(new BuiltinHandlerActivator());
 
-            _activator = Using(new BuiltinHandlerActivator());
+        _configurer = Configure.With(_activator)
+            .Transport(t => t.UseAmazonSQS(accessKeyId, secretAccessKey, amazonSqsConfig, queueName))
+            .Options(o => o.LogPipeline());
+    }
 
-            _configurer = Configure.With(_activator)
-                .Transport(t => t.UseAmazonSQS(accessKeyId, secretAccessKey, amazonSqsConfig, queueName))
-                .Options(o => o.LogPipeline());
-        }
+    [Test]
+    public async Task CanDeferMessage()
+    {
+        var gotTheMessage = new ManualResetEvent(false);
 
-        [Test]
-        public async Task CanDeferMessage()
+        var receiveTime = DateTime.MaxValue;
+
+        _activator.Handle<string>(async str =>
         {
-            var gotTheMessage = new ManualResetEvent(false);
+            receiveTime = DateTime.UtcNow;
+            gotTheMessage.Set();
+        });
 
-            var receiveTime = DateTime.MaxValue;
+        var bus = _configurer.Start();
+        var sendTime = DateTime.UtcNow;
 
-            _activator.Handle<string>(async str =>
-            {
-                receiveTime = DateTime.UtcNow;
-                gotTheMessage.Set();
-            });
+        await bus.DeferLocal(TimeSpan.FromSeconds(10), "hej med dig!");
 
-            var bus = _configurer.Start();
-            var sendTime = DateTime.UtcNow;
+        gotTheMessage.WaitOrDie(TimeSpan.FromSeconds(20));
 
-            await bus.DeferLocal(TimeSpan.FromSeconds(10), "hej med dig!");
+        var elapsed = receiveTime - sendTime;
 
-            gotTheMessage.WaitOrDie(TimeSpan.FromSeconds(20));
-
-            var elapsed = receiveTime - sendTime;
-
-            Assert.That(elapsed, Is.GreaterThan(TimeSpan.FromSeconds(8)));
-        }
+        Assert.That(elapsed, Is.GreaterThan(TimeSpan.FromSeconds(8)));
     }
 }

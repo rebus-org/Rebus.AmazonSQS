@@ -6,44 +6,43 @@ using Rebus.Messages;
 using Rebus.Tests.Contracts;
 using Rebus.Transport;
 
-namespace Rebus.AmazonSQS.Tests
+namespace Rebus.AmazonSQS.Tests;
+
+public abstract class SqsFixtureBase : FixtureBase
 {
-    public abstract class SqsFixtureBase : FixtureBase
+    readonly Encoding _defaultEncoding = Encoding.UTF8;
+
+    protected async Task WithContext(Func<ITransactionContext, Task> contextAction, bool completeTransaction = true)
     {
-        readonly Encoding _defaultEncoding = Encoding.UTF8;
-
-        protected async Task WithContext(Func<ITransactionContext, Task> contextAction, bool completeTransaction = true)
+        using (var scope = new RebusTransactionScope())
         {
-            using (var scope = new RebusTransactionScope())
-            {
-                await contextAction(scope.TransactionContext);
+            await contextAction(scope.TransactionContext);
 
-                if (completeTransaction)
-                {
-                    await scope.CompleteAsync();
-                }
+            if (completeTransaction)
+            {
+                await scope.CompleteAsync();
             }
         }
+    }
 
-        protected string GetStringBody(TransportMessage transportMessage)
+    protected string GetStringBody(TransportMessage transportMessage)
+    {
+        if (transportMessage == null)
         {
-            if (transportMessage == null)
-            {
-                throw new InvalidOperationException("Cannot get string body out of null message!");
-            }
-
-            return _defaultEncoding.GetString(transportMessage.Body);
+            throw new InvalidOperationException("Cannot get string body out of null message!");
         }
 
-        protected TransportMessage MessageWith(string stringBody)
+        return _defaultEncoding.GetString(transportMessage.Body);
+    }
+
+    protected TransportMessage MessageWith(string stringBody)
+    {
+        var headers = new Dictionary<string, string>
         {
-            var headers = new Dictionary<string, string>
-                          {
-                              {Headers.MessageId, Guid.NewGuid().ToString()},
-                              {Headers.CorrelationId, Guid.NewGuid().ToString()}
-                          };
-            var body = _defaultEncoding.GetBytes(stringBody);
-            return new TransportMessage(headers, body);
-        }
+            {Headers.MessageId, Guid.NewGuid().ToString()},
+            {Headers.CorrelationId, Guid.NewGuid().ToString()}
+        };
+        var body = _defaultEncoding.GetBytes(stringBody);
+        return new TransportMessage(headers, body);
     }
 }

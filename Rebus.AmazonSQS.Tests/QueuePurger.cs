@@ -1,21 +1,20 @@
 ﻿using System;
 
-namespace Rebus.AmazonSQS.Tests
+namespace Rebus.AmazonSQS.Tests;
+
+/// <summary>
+/// Purges the queue when it is disposed
+/// </summary>
+class QueuePurger : IDisposable
 {
-    /// <summary>
-    /// Purges the queue when it is disposed
-    /// </summary>
-    class QueuePurger : IDisposable
+    readonly string _queueName;
+
+    public QueuePurger(string queueName) => _queueName = queueName;
+
+    public void Dispose()
     {
-        readonly string _queueName;
-
-        public QueuePurger(string queueName) => _queueName = queueName;
-
-        public void Dispose()
-        {
-            using var transport = AmazonSqsTransportFactory.CreateTransport(_queueName, TimeSpan.FromMinutes(5));
+        using var transport = AmazonSqsTransportFactory.CreateTransport(_queueName, TimeSpan.FromMinutes(5));
             
-            transport.Purge();
-        }
+        transport.Purge();
     }
 }

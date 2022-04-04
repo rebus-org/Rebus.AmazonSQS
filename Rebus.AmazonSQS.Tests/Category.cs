@@ -1,7 +1,6 @@
-namespace Rebus.AmazonSQS.Tests
+namespace Rebus.AmazonSQS.Tests;
+
+public static class Category
 {
-    public static class Category
-    {
-        public const string AmazonSqs = "amazonsqs";
-    }
+    public const string AmazonSqs = "amazonsqs";
 }

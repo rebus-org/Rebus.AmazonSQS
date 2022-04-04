@@ -6,46 +6,45 @@ using Rebus.Bus;
 using Rebus.Messages;
 using Rebus.Transport;
 
-namespace Rebus.AmazonSQS.Tests.Extensions
+namespace Rebus.AmazonSQS.Tests.Extensions;
+
+static class TransportExtensions
 {
-    static class TransportExtensions
+    public static async Task<List<TransportMessage>> ReceiveAll(this ITransport transport, int quietTimeSeconds = 2)
     {
-        public static async Task<List<TransportMessage>> ReceiveAll(this ITransport transport, int quietTimeSeconds = 2)
+        var quietTime = TimeSpan.FromSeconds(quietTimeSeconds);
+        var transportMessages = new List<TransportMessage>();
+        var lastMessageReceived = DateTime.Now;
+
+        while (true)
         {
-            var quietTime = TimeSpan.FromSeconds(quietTimeSeconds);
-            var transportMessages = new List<TransportMessage>();
-            var lastMessageReceived = DateTime.Now;
-
-            while (true)
+            using (var scope = new RebusTransactionScope())
             {
-                using (var scope = new RebusTransactionScope())
+                var message = await transport.Receive(scope.TransactionContext, CancellationToken.None);
+
+                await scope.CompleteAsync();
+
+                if (message != null)
                 {
-                    var message = await transport.Receive(scope.TransactionContext, CancellationToken.None);
-
-                    await scope.CompleteAsync();
-
-                    if (message != null)
-                    {
-                        Console.WriteLine($"Got a message: {message.GetMessageId()}");
-                        transportMessages.Add(message);
-                        lastMessageReceived = DateTime.Now;
-                    }
-                    else
-                    {
-                        Console.WriteLine("Waiting 0.5 s");
-                        await Task.Delay(500);
-                    }
+                    Console.WriteLine($"Got a message: {message.GetMessageId()}");
+                    transportMessages.Add(message);
+                    lastMessageReceived = DateTime.Now;
                 }
-
-                var elapsedSinceLastMessageReceived = DateTime.Now - lastMessageReceived;
-
-                if (elapsedSinceLastMessageReceived > quietTime)
+                else
                 {
-                    break;
+                    Console.WriteLine("Waiting 0.5 s");
+                    await Task.Delay(500);
                 }
             }
 
-            return transportMessages;
+            var elapsedSinceLastMessageReceived = DateTime.Now - lastMessageReceived;
+
+            if (elapsedSinceLastMessageReceived > quietTime)
+            {
+                break;
+            }
         }
+
+        return transportMessages;
     }
 }

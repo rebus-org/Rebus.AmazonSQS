@@ -4,120 +4,119 @@ using System.Threading.Tasks;
 using NUnit.Framework;
 using Rebus.Transport;
 
-namespace Rebus.AmazonSQS.Tests
+namespace Rebus.AmazonSQS.Tests;
+
+[TestFixture, Category(Category.AmazonSqs)]
+public class QueueAddressHandlingTests : SqsFixtureBase
 {
-    [TestFixture, Category(Category.AmazonSqs)]
-    public class QueueAddressHandlingTests : SqsFixtureBase
+    private AmazonSqsTransportFactory _transportFactory;
+
+    protected override void SetUp()
     {
-        private AmazonSqsTransportFactory _transportFactory;
+        _transportFactory = new AmazonSqsTransportFactory();
 
-        protected override void SetUp()
+    }
+
+    //[Test]
+    //public async Task WhenTheInputAddressIsAFullUrlAndDestinationIsQueueName_ThenItsStillWorks()
+    //{
+    //    //arrange
+
+
+
+    //    var queueName = "test" + Guid.NewGuid().ToString();
+    //    var fullUrl = _transportFactory.BaseUrl + queueName;
+    //    var outputTransport = _transportFactory.Create(fullUrl);
+    //    var destinationQueueName = "testDeux" + Guid.NewGuid().ToString();
+    //    var receivingTransport = _transportFactory.Create(destinationQueueName);
+    //    //act
+
+    //    await TestSendReceive(outputTransport, destinationQueueName, receivingTransport);
+
+
+    //    //assert
+
+
+
+    //}
+
+    //[Test]
+    //public async Task WhenTheInputIsAQueueNameAndDestinationIsFullUrl_ThenItsStillWorks()
+    //{
+    //    //arrange
+
+
+
+    //    var queueName = "test" + Guid.NewGuid().ToString();
+
+    //    var outputTransport = _transportFactory.Create(queueName);
+
+    //    var destinationFullUrl = _transportFactory.BaseUrl + "testDeux" + Guid.NewGuid().ToString();
+    //    var receivingTransport = _transportFactory.Create(destinationFullUrl);
+    //    //act
+
+    //    await TestSendReceive(outputTransport, destinationFullUrl, receivingTransport);
+
+
+    //    //assert
+
+
+
+    //}
+
+    //[Test]
+    //public async Task WhenBothInputAndDestinationIsFullUrl_ThenItWorks()
+    //{
+    //    //arrange
+
+    //    var inputqueue = _transportFactory.BaseUrl + "output" + Guid.NewGuid();
+    //    var outputTransport = _transportFactory.Create(inputqueue);
+
+    //    var destinationFullUrl = _transportFactory.BaseUrl + "testDeux" + Guid.NewGuid().ToString(); ;
+    //    var receivingTransport = _transportFactory.Create(destinationFullUrl);
+    //    //act
+
+    //    await TestSendReceive(outputTransport, destinationFullUrl, receivingTransport);
+
+
+
+    //    //assert
+
+    //}
+
+    [Test]
+    public void WhenUsingAQueuNameWithSlash_ThenArgumentExcetiopIsThrown()
+    {
+        //arrange
+
+        var invalidQueueName = "/inputqueue";
+
+        Assert.Throws<ArgumentException>(() => _transportFactory.Create(invalidQueueName));
+        //act
+
+        //assert
+
+    }
+
+    private async Task TestSendReceive(ITransport outputTransport, string destinationQueueUrlOrName, ITransport destinationTransport)
+    {
+        await WithContext(async (context) => { await outputTransport.Send(destinationQueueUrlOrName, MessageWith("hallo"), context); });
+
+        await WithContext(async context =>
         {
-            _transportFactory = new AmazonSqsTransportFactory();
+            var received = await destinationTransport.Receive(context, new CancellationTokenSource().Token);
 
-        }
-
-        //[Test]
-        //public async Task WhenTheInputAddressIsAFullUrlAndDestinationIsQueueName_ThenItsStillWorks()
-        //{
-        //    //arrange
+            Assert.AreEqual("hallo", GetStringBody(received));
+        });
+    }
 
 
-
-        //    var queueName = "test" + Guid.NewGuid().ToString();
-        //    var fullUrl = _transportFactory.BaseUrl + queueName;
-        //    var outputTransport = _transportFactory.Create(fullUrl);
-        //    var destinationQueueName = "testDeux" + Guid.NewGuid().ToString();
-        //    var receivingTransport = _transportFactory.Create(destinationQueueName);
-        //    //act
-
-        //    await TestSendReceive(outputTransport, destinationQueueName, receivingTransport);
-
-
-        //    //assert
+    protected override void TearDown()
+    {
+        base.TearDown();
+        _transportFactory.CleanUp(true);
 
 
 
-        //}
-
-        //[Test]
-        //public async Task WhenTheInputIsAQueueNameAndDestinationIsFullUrl_ThenItsStillWorks()
-        //{
-        //    //arrange
-
-
-
-        //    var queueName = "test" + Guid.NewGuid().ToString();
-
-        //    var outputTransport = _transportFactory.Create(queueName);
-
-        //    var destinationFullUrl = _transportFactory.BaseUrl + "testDeux" + Guid.NewGuid().ToString();
-        //    var receivingTransport = _transportFactory.Create(destinationFullUrl);
-        //    //act
-
-        //    await TestSendReceive(outputTransport, destinationFullUrl, receivingTransport);
-
-
-        //    //assert
-
-
-
-        //}
-
-        //[Test]
-        //public async Task WhenBothInputAndDestinationIsFullUrl_ThenItWorks()
-        //{
-        //    //arrange
-
-        //    var inputqueue = _transportFactory.BaseUrl + "output" + Guid.NewGuid();
-        //    var outputTransport = _transportFactory.Create(inputqueue);
-
-        //    var destinationFullUrl = _transportFactory.BaseUrl + "testDeux" + Guid.NewGuid().ToString(); ;
-        //    var receivingTransport = _transportFactory.Create(destinationFullUrl);
-        //    //act
-
-        //    await TestSendReceive(outputTransport, destinationFullUrl, receivingTransport);
-
-
-
-        //    //assert
-
-        //}
-
-        [Test]
-        public void WhenUsingAQueuNameWithSlash_ThenArgumentExcetiopIsThrown()
-        {
-            //arrange
-
-            var invalidQueueName = "/inputqueue";
-
-            Assert.Throws<ArgumentException>(() => _transportFactory.Create(invalidQueueName));
-            //act
-
-            //assert
-
-        }
-
-        private async Task TestSendReceive(ITransport outputTransport, string destinationQueueUrlOrName, ITransport destinationTransport)
-        {
-            await WithContext(async (context) => { await outputTransport.Send(destinationQueueUrlOrName, MessageWith("hallo"), context); });
-
-            await WithContext(async context =>
-            {
-                var received = await destinationTransport.Receive(context, new CancellationTokenSource().Token);
-
-                Assert.AreEqual("hallo", GetStringBody(received));
-            });
-        }
-
-
-        protected override void TearDown()
-        {
-            base.TearDown();
-            _transportFactory.CleanUp(true);
-
-
-
-        }
     }
 }

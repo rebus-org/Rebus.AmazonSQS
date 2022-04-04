@@ -10,143 +10,142 @@ using Rebus.Logging;
 using Rebus.Tests.Contracts;
 #pragma warning disable 1998
 
-namespace Rebus.AmazonSQS.Tests.Bugs
+namespace Rebus.AmazonSQS.Tests.Bugs;
+
+[TestFixture]
+public class CannotSendTooBigMessages : SqsFixtureBase
 {
-    [TestFixture]
-    public class CannotSendTooBigMessages : SqsFixtureBase
+    string _queueName;
+
+    protected override void SetUp()
     {
-        string _queueName;
+        _queueName = TestConfig.GetName("queue");
 
-        protected override void SetUp()
+        Using(new QueuePurger(_queueName));
+    }
+
+    [Test]
+    public async Task ThrowsLikeItShould()
+    {
+        var activator = new BuiltinHandlerActivator();
+
+        activator.Handle<string>(async _ => { });
+
+        Using(activator);
+
+        var connectionInfo = AmazonSqsTransportFactory.ConnectionInfo;
+
+        var bus = Configure.With(activator)
+            .Logging(l => l.Console(LogLevel.Info))
+            .Transport(t => t.UseAmazonSQS(connectionInfo.AccessKeyId, connectionInfo.SecretAccessKey, connectionInfo.RegionEndpoint, _queueName))
+            .Start();
+
+        var exception = Assert.ThrowsAsync<BatchRequestTooLongException>(async () =>
         {
-            _queueName = TestConfig.GetName("queue");
+            await bus.SendLocal(string.Concat(Enumerable.Repeat("DET HER ER BARE EN NORMAL STRENG", 10000)));
+        });
 
-            Using(new QueuePurger(_queueName));
-        }
+        Console.WriteLine(exception);
+    }
 
-        [Test]
-        public async Task ThrowsLikeItShould()
+    [Test]
+    public async Task ThrowsLikeItShould_ConcreteYetAnonymousModel()
+    {
+        var activator = new BuiltinHandlerActivator();
+
+        activator.Handle<SomeKindOfRequest>(async _ => { });
+
+        Using(activator);
+
+        var connectionInfo = AmazonSqsTransportFactory.ConnectionInfo;
+
+        var bus = Configure.With(activator)
+            .Logging(l => l.Console(LogLevel.Info))
+            .Transport(t => t.UseAmazonSQS(connectionInfo.AccessKeyId, connectionInfo.SecretAccessKey, connectionInfo.RegionEndpoint, _queueName))
+            .Start();
+
+        var exception = Assert.ThrowsAsync<BatchRequestTooLongException>(async () =>
         {
-            var activator = new BuiltinHandlerActivator();
-
-            activator.Handle<string>(async _ => { });
-
-            Using(activator);
-
-            var connectionInfo = AmazonSqsTransportFactory.ConnectionInfo;
-
-            var bus = Configure.With(activator)
-                .Logging(l => l.Console(LogLevel.Info))
-                .Transport(t => t.UseAmazonSQS(connectionInfo.AccessKeyId, connectionInfo.SecretAccessKey, connectionInfo.RegionEndpoint, _queueName))
-                .Start();
-
-            var exception = Assert.ThrowsAsync<BatchRequestTooLongException>(async () =>
+            await bus.SendLocal(new SomeKindOfRequest
             {
-                await bus.SendLocal(string.Concat(Enumerable.Repeat("DET HER ER BARE EN NORMAL STRENG", 10000)));
-            });
-
-            Console.WriteLine(exception);
-        }
-
-        [Test]
-        public async Task ThrowsLikeItShould_ConcreteYetAnonymousModel()
-        {
-            var activator = new BuiltinHandlerActivator();
-
-            activator.Handle<SomeKindOfRequest>(async _ => { });
-
-            Using(activator);
-
-            var connectionInfo = AmazonSqsTransportFactory.ConnectionInfo;
-
-            var bus = Configure.With(activator)
-                .Logging(l => l.Console(LogLevel.Info))
-                .Transport(t => t.UseAmazonSQS(connectionInfo.AccessKeyId, connectionInfo.SecretAccessKey, connectionInfo.RegionEndpoint, _queueName))
-                .Start();
-
-            var exception = Assert.ThrowsAsync<BatchRequestTooLongException>(async () =>
-            {
-                await bus.SendLocal(new SomeKindOfRequest
+                SomeKindOfRequestModel = new SomeKindOfRequestModel
                 {
-                    SomeKindOfRequestModel = new SomeKindOfRequestModel
-                    {
-                        HereWeHaveItems = Enumerable.Range(0, 100)
-                            .Select(n => new SomeKindOfRequestModelBase.SomeKindOfItemModel
-                            {
-                                SubItems = Enumerable.Range(0, 3)
-                                    .Select(i => new SomeKindOfRequestModelBase.SubItemModel
-                                    {
-                                        SubSubItems = Enumerable.Range(0, 5)
-                                            .Select(l => new SomeKindOfRequestModelBase.SubSubItemModel
-                                            {
-                                                Number = l,
-                                                Name = $"bucket-{n}-{i}-{l}",
-                                            })
-                                            .ToList(),
+                    HereWeHaveItems = Enumerable.Range(0, 100)
+                        .Select(n => new SomeKindOfRequestModelBase.SomeKindOfItemModel
+                        {
+                            SubItems = Enumerable.Range(0, 3)
+                                .Select(i => new SomeKindOfRequestModelBase.SubItemModel
+                                {
+                                    SubSubItems = Enumerable.Range(0, 5)
+                                        .Select(l => new SomeKindOfRequestModelBase.SubSubItemModel
+                                        {
+                                            Number = l,
+                                            Name = $"bucket-{n}-{i}-{l}",
+                                        })
+                                        .ToList(),
 
-                                        Name = $"buckerino-{n}-{i}",
-                                        Text = $"THIS IS TITLE {i}"
-                                    })
-                                    .ToList(),
-                            })
-                            .ToList()
-                    },
-
-                    SomeKindOfListOfStrings = Enumerable.Range(0, 20)
-                        .Select(n => $"THIS NO {n}")
+                                    Name = $"buckerino-{n}-{i}",
+                                    Text = $"THIS IS TITLE {i}"
+                                })
+                                .ToList(),
+                        })
                         .ToList()
-                });
+                },
+
+                SomeKindOfListOfStrings = Enumerable.Range(0, 20)
+                    .Select(n => $"THIS NO {n}")
+                    .ToList()
             });
+        });
 
-            Console.WriteLine(exception);
+        Console.WriteLine(exception);
+    }
+
+    public class SomeKindOfRequest
+    {
+        public SomeKindOfRequestModel SomeKindOfRequestModel { get; set; }
+        public List<string> SomeKindOfListOfStrings { get; set; }
+    }
+
+    public class SomeKindOfRequestModel : SomeKindOfRequestModelBase
+    {
+        public DateTimeOffset SomeTimeUtc { get; set; }
+        public DateTimeOffset? AnotherTimeUtc { get; set; }
+    }
+
+    public enum SomeKindOfEnumerationOfSomething { Whatever }
+
+    public class SomeKindOfRequestModelBase
+    {
+        public string ThisIsString { get; set; }
+
+        public Guid ThisIsGuid { get; set; }
+
+        public string Name { get; set; }
+
+        public DateTimeOffset ThisIsDateTimeOffset { get; set; }
+
+        public List<SomeKindOfItemModel> HereWeHaveItems { get; set; }
+
+        public class SomeKindOfItemModel
+        {
+            public List<SubItemModel> SubItems { get; set; }
         }
 
-        public class SomeKindOfRequest
+        public class SubItemModel
         {
-            public SomeKindOfRequestModel SomeKindOfRequestModel { get; set; }
-            public List<string> SomeKindOfListOfStrings { get; set; }
-        }
-
-        public class SomeKindOfRequestModel : SomeKindOfRequestModelBase
-        {
-            public DateTimeOffset SomeTimeUtc { get; set; }
-            public DateTimeOffset? AnotherTimeUtc { get; set; }
-        }
-
-        public enum SomeKindOfEnumerationOfSomething { Whatever }
-
-        public class SomeKindOfRequestModelBase
-        {
-            public string ThisIsString { get; set; }
-
-            public Guid ThisIsGuid { get; set; }
+            public string Text { get; set; }
 
             public string Name { get; set; }
 
-            public DateTimeOffset ThisIsDateTimeOffset { get; set; }
+            public List<SubSubItemModel> SubSubItems { get; set; }
+        }
 
-            public List<SomeKindOfItemModel> HereWeHaveItems { get; set; }
+        public class SubSubItemModel
+        {
+            public int Number { get; set; }
 
-            public class SomeKindOfItemModel
-            {
-                public List<SubItemModel> SubItems { get; set; }
-            }
-
-            public class SubItemModel
-            {
-                public string Text { get; set; }
-
-                public string Name { get; set; }
-
-                public List<SubSubItemModel> SubSubItems { get; set; }
-            }
-
-            public class SubSubItemModel
-            {
-                public int Number { get; set; }
-
-                public string Name { get; set; }
-            }
+            public string Name { get; set; }
         }
     }
 }

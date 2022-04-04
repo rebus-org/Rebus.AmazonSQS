@@ -76,6 +76,9 @@
 ## 6.3.2
 * Pass `CancellationToken.None` to receive call of SQS client, to avoid leaving unacked message on the server when shutting down - thanks [xhafan]
 
+## 6.4.0
+* Add ability to provide a function that customizes the visibility timeout when message delivery has failed
+
 ---
 
 [ajacksms]: https://github.com/ajacksms

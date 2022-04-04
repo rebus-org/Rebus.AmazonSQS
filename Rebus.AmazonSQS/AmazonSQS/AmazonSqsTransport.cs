@@ -389,13 +389,18 @@ public class AmazonSqsTransport : ITransport, IInitializable, IDisposable
 
         context.OnAborted(_ =>
         {
+            TimeSpan GetDefault(ITransactionContext _) => TimeSpan.FromSeconds(0);
+            var timeoutFunction = _options.GetVisibilityTimeoutOnAbort ?? GetDefault;
+            var timeout = timeoutFunction(context);
+            var timeoutSeconds = (int)timeout.TotalSeconds;
+
             renewalTask.Dispose();
 
             AsyncHelpers.RunSync(async () =>
             {
                 try
                 {
-                    await _client.ChangeMessageVisibilityAsync(_queueUrl, sqsMessage.ReceiptHandle, 0, cancellationToken);
+                    await _client.ChangeMessageVisibilityAsync(_queueUrl, sqsMessage.ReceiptHandle, timeoutSeconds, cancellationToken);
                 }
                 catch (Exception)
                 {

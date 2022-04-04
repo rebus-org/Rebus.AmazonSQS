@@ -1,6 +1,7 @@
 ﻿using System;
 using Amazon.SQS;
 using Rebus.Bus;
+using Rebus.Transport;
 
 namespace Rebus.Config;
 
@@ -51,6 +52,13 @@ public class AmazonSQSTransportOptions
             _messageBatchSize = value;
         }
     }
+
+    /// <summary>
+    /// Provides the ability to customize the visibility timeout set to a message when it is aborted. If this one is not set,
+    /// the visibility timeout defaults to 0, which means that failed messages will be immediately retried.
+    /// Return a TimeSpan > 0 means from this function means that message delivery will automatically be delayed after each failure to consume the message.
+    /// </summary>
+    public Func<ITransactionContext, TimeSpan> GetVisibilityTimeoutOnAbort { get; set; }
 
     /// <summary>
     /// Optional function that gets a new instance of <see cref="IAmazonSQS"/>. Set this if you wish to override how <see cref="IAmazonSQS"/> is retrieved.

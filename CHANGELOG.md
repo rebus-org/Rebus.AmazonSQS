@@ -79,6 +79,9 @@
 ## 6.4.0
 * Add ability to provide a function that customizes the visibility timeout when message delivery has failed
 
+## 6.5.0
+* Update awssdk.sqs dep to 3.7.1 because that gives a lot of flexibility
+
 ---
 
 [ajacksms]: https://github.com/ajacksms

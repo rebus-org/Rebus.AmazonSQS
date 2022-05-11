@@ -4,4 +4,7 @@ using Rebus.Tests.Contracts.Transports;
 namespace Rebus.AmazonSQS.Tests;
 
 [TestFixture, Category(Category.AmazonSqs)]
-public class AmazonSqsSimpleSend : BasicSendReceive<AmazonSqsTransportFactory> { }
+public class AmazonSqsSimpleSend : BasicSendReceive<AmazonSqsTransportFactory>
+{
+    protected override TransportBehavior Behavior => new(ReturnsNullWhenQueueIsEmpty: true);
+}

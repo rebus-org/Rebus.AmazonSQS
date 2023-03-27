@@ -246,7 +246,7 @@ public class AmazonSqsTransport : ITransport, IInitializable, IDisposable
         {
             var messagesToSend = new ConcurrentQueue<OutgoingMessage>();
 
-            context.OnCommitted(async _ => await SendOutgoingMessages(messagesToSend));
+            context.OnCommit(async _ => await SendOutgoingMessages(messagesToSend));
 
             return messagesToSend;
         });
@@ -378,7 +378,7 @@ public class AmazonSqsTransport : ITransport, IInitializable, IDisposable
 
         var renewalTask = CreateRenewalTaskForMessage(sqsMessage, _client);
 
-        context.OnCompleted(async _ =>
+        context.OnAck(async _ =>
         {
             renewalTask.Dispose();
 
@@ -387,7 +387,7 @@ public class AmazonSqsTransport : ITransport, IInitializable, IDisposable
             await _client.DeleteMessageAsync(new DeleteMessageRequest(_queueUrl, sqsMessage.ReceiptHandle));
         });
 
-        context.OnAborted(_ =>
+        context.OnNack(async _ =>
         {
             TimeSpan GetDefault(ITransactionContext _) => TimeSpan.FromSeconds(0);
             var timeoutFunction = _options.GetVisibilityTimeoutOnAbort ?? GetDefault;
@@ -396,16 +396,7 @@ public class AmazonSqsTransport : ITransport, IInitializable, IDisposable
 
             renewalTask.Dispose();
 
-            AsyncHelpers.RunSync(async () =>
-            {
-                try
-                {
-                    await _client.ChangeMessageVisibilityAsync(_queueUrl, sqsMessage.ReceiptHandle, timeoutSeconds, cancellationToken);
-                }
-                catch (Exception)
-                {
-                }
-            });
+            await _client.ChangeMessageVisibilityAsync(_queueUrl, sqsMessage.ReceiptHandle, timeoutSeconds, cancellationToken);
         });
 
         var transportMessage = ExtractTransportMessageFrom(sqsMessage);

@@ -70,10 +70,10 @@ public class CannotSendTooBigMessages : SqsFixtureBase
             {
                 SomeKindOfRequestModel = new SomeKindOfRequestModel
                 {
-                    HereWeHaveItems = Enumerable.Range(0, 100)
+                    HereWeHaveItems = Enumerable.Range(0, 300)
                         .Select(n => new SomeKindOfRequestModelBase.SomeKindOfItemModel
                         {
-                            SubItems = Enumerable.Range(0, 3)
+                            SubItems = Enumerable.Range(0, 10)
                                 .Select(i => new SomeKindOfRequestModelBase.SubItemModel
                                 {
                                     SubSubItems = Enumerable.Range(0, 5)

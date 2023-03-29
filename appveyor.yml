@@ -10,7 +10,7 @@ before_build:
   - appveyor-retry dotnet restore -v Minimal
 
 build_script:
-  - dotnet build Rebus.AmazonSQS -c Release --no-restore
+  - dotnet build -c Release --no-restore
 
 test_script:
-  - dotnet test Rebus.AmazonSQS.Tests -c Release --no-restore
+  - dotnet test -c Release --no-restore

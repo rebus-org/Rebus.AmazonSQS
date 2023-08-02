@@ -34,7 +34,7 @@ public class VerifyDeferCountWorksAsExpected : FixtureBase
         var bus = Configure.With(activator)
             .Logging(l => l.None())
             .Transport(t => t.UseInMemoryTransport(network, "whatever-man"))
-            .Options(o => o.SimpleRetryStrategy(secondLevelRetriesEnabled: true))
+            .Options(o => o.RetryStrategy(secondLevelRetriesEnabled: true))
             .Timeouts(t => t.StoreInMemory())
             .Start();
 
@@ -65,7 +65,7 @@ public class VerifyDeferCountWorksAsExpected : FixtureBase
         var bus = Configure.With(activator)
             .Logging(l => l.None())
             .Transport(t => t.UseAmazonSQS(info.AccessKeyId, info.SecretAccessKey, info.RegionEndpoint, queueName))
-            .Options(o => o.SimpleRetryStrategy(secondLevelRetriesEnabled: true))
+            .Options(o => o.RetryStrategy(secondLevelRetriesEnabled: true))
             .Start();
 
         await bus.SendLocal(new TestMessage("yo!"));

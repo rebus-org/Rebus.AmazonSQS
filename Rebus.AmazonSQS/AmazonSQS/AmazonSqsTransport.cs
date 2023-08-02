@@ -319,14 +319,14 @@ public class AmazonSqsTransport : ITransport, IInitializable, IDisposable
 
         if (message.DestinationAddress.EndsWith(".fifo"))
         {
-            if (headers.ContainsKey(MessageGroupIdHeader))
+            if (headers.TryGetValue(MessageGroupIdHeader, out var messageGroupId))
             {
-                entry.MessageGroupId = headers[MessageGroupIdHeader];
+                entry.MessageGroupId = messageGroupId;
             }
 
-            if (headers.ContainsKey(MessageDeduplicationIdHeader))
+            if (headers.TryGetValue(MessageDeduplicationIdHeader, out var messageDeduplicationId))
             {
-                entry.MessageDeduplicationId = headers[MessageDeduplicationIdHeader];
+                entry.MessageDeduplicationId = messageDeduplicationId;
             }
         }
 

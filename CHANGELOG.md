@@ -82,8 +82,9 @@
 ## 6.5.0
 * Update awssdk.sqs dep to 3.7.1 because that gives a lot of flexibility
 
-## 7.0.0-alpha01
+## 7.0.0-alpha02
 * Update to Rebus 8
+* Update awssdk.sqs dependency to 3.7.200.9
 
 ---
 

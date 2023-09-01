@@ -23,6 +23,7 @@ The policy required for receiving messages from a SQS queue using "least-privile
                 "sqs:ChangeMessageVisibility",
                 "sqs:DeleteMessageBatch",
                 "sqs:SendMessageBatch",
+                "sqs:SendMessage",
                 "sqs:ReceiveMessage",
                 "sqs:DeleteQueue",
                 "sqs:CreateQueue",

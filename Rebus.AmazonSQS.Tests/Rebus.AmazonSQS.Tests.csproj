@@ -8,14 +8,14 @@
 		<ProjectReference Include="..\Rebus.AmazonSQS\Rebus.AmazonSQS.csproj" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="awssdk.sqs" Version="3.7.200.9" />
-		<PackageReference Include="microsoft.net.test.sdk" Version="17.6.3" />
-		<PackageReference Include="nunit" Version="3.13.3" />
+		<PackageReference Include="awssdk.sqs" Version="3.7.300.2" />
+		<PackageReference Include="microsoft.net.test.sdk" Version="17.8.0" />
+		<PackageReference Include="nunit" Version="3.14.0" />
 		<PackageReference Include="nunit3testadapter" Version="4.5.0">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="rebus.tests.contracts" Version="8.0.0-alpha01" />
+		<PackageReference Include="rebus.tests.contracts" Version="8.0.1" />
 	</ItemGroup>
 	<ItemGroup>
 		<None Update="sqs_connectionstring.txt">

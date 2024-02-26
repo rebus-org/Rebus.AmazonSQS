@@ -8,8 +8,33 @@ Provides an [Amazon SQS](https://aws.amazon.com/sqs/) transport for [Rebus](http
 
 ---
 
+## Usage
 
-# Required AWS security policies
+Using bare-bones Rebus with the built-in container adapter, you would do something like this:
+
+```csharp
+using var activator = new BuiltinHandlerActivator();
+
+Configure.With(activator)
+    .Transport(t => t.UseAmazonSQS(accessKeyId, accessKey, regionEndpoint, queueName))
+    .Start();
+
+Console.ReadLine();
+```
+
+but for most apps, it would probably be more appropriate to use Microsoft.Extensions.Hosting and Rebus.ServiceProvider and do this:
+
+```csharp
+services.AddRebus(
+    configure => configure
+        .Transport(t => t.UseAmazonSQS(accessKeyId, accessKey, regionEndpoint, queueName))
+);
+```
+
+---
+
+
+## Required AWS security policies
 The policy required for receiving messages from a SQS queue using "least-privilege principle" is as follows:
 ```
 {

@@ -154,7 +154,7 @@ public class AmazonSqsTransport : ITransport, IInitializable, IDisposable
                 // See http://docs.aws.amazon.com/sdkfornet/v3/apidocs/items/SQS/TSQSCreateQueueRequest.html for options
                 var createQueueRequest = new CreateQueueRequest(queueName)
                 {
-                    Attributes =
+                    Attributes = new Dictionary<string, string>
                     {
                         ["VisibilityTimeout"] = ((int) _peekLockDuration.TotalSeconds).ToString(CultureInfo.InvariantCulture)
                     }
@@ -192,14 +192,14 @@ public class AmazonSqsTransport : ITransport, IInitializable, IDisposable
                 {
                     var request = new ReceiveMessageRequest(_queueUrl) { MaxNumberOfMessages = 10 };
                     var response = await _client.ReceiveMessageAsync(request);
-                    if (!response.Messages.Any()) break;
+                    if (response.Messages?.Any() is not true) break;
 
                     var entries = response.Messages
                         .Select(m => new DeleteMessageBatchRequestEntry(m.MessageId, m.ReceiptHandle))
                         .ToList();
 
                     var deleteResponse = await _client.DeleteMessageBatchAsync(_queueUrl, entries);
-                    if (!deleteResponse.Failed.Any()) continue;
+                    if (deleteResponse.Failed?.Any() is not true) continue;
 
                     var errors = string.Join(Environment.NewLine,
                         deleteResponse.Failed.Select(f => $"{f.Message} ({f.Id})"));
@@ -288,7 +288,7 @@ public class AmazonSqsTransport : ITransport, IInitializable, IDisposable
                         var request = new SendMessageBatchRequest(destinationUrl, batchToSend);
                         var response = await _client.SendMessageBatchAsync(request);
 
-                        if (response.Failed.Any())
+                        if (response.Failed?.Any() == true)
                         {
                             var failed = response.Failed
                                 .Select(f => new AmazonSQSException($"Failed {f.Message} with Id={f.Id}, Code={f.Code}, SenderFault={f.SenderFault}"));
@@ -366,13 +366,13 @@ public class AmazonSqsTransport : ITransport, IInitializable, IDisposable
         {
             MaxNumberOfMessages = 1,
             WaitTimeSeconds = _options.ReceiveWaitTimeSeconds,
-            AttributeNames = new List<string>(new[] { "All" }),
+            MessageSystemAttributeNames = new List<string>(new[] { "All" }),
             MessageAttributeNames = new List<string>(new[] { "All" })
         };
 
         var response = await _client.ReceiveMessageAsync(request, CancellationToken.None);
 
-        if (!response.Messages.Any()) return null;
+        if (response.Messages?.Any() is not true) return null;
 
         var sqsMessage = response.Messages.First();
 

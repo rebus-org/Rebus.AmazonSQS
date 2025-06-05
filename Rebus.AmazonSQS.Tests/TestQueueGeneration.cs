@@ -18,16 +18,14 @@ public class TestQueueGeneration
         var credentials = new BasicAWSCredentials(info.AccessKeyId, info.SecretAccessKey);
         var config = new AmazonSQSConfig{RegionEndpoint = info.RegionEndpoint};
 
-        using (var client = new AmazonSQSClient(credentials, config))
+        using var client = new AmazonSQSClient(credentials, config);
+        
+        var queueName = "test1";
+        var response = await client.CreateQueueAsync(new CreateQueueRequest(queueName));
+
+        if (response.HttpStatusCode != HttpStatusCode.OK)
         {
-            var queueName = "test1";
-            var response = await client.CreateQueueAsync(new CreateQueueRequest(queueName));
-
-            if (response.HttpStatusCode != HttpStatusCode.OK)
-            {
-                throw new Exception($"Could not create queue '{queueName}' - got HTTP {response.HttpStatusCode}");
-            }
+            throw new Exception($"Could not create queue '{queueName}' - got HTTP {response.HttpStatusCode}");
         }
-
     }
 }

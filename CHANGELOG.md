@@ -86,6 +86,9 @@
 * Update to Rebus 8
 * Update awssdk.sqs dependency to 3.7.300.2
 
+## 8.0.0
+* Update awssdk.sqs dependency to 4.0.0.5
+
 ---
 
 [ajacksms]: https://github.com/ajacksms

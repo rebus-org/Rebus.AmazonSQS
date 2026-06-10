@@ -370,7 +370,7 @@ public class AmazonSqsTransport : ITransport, IInitializable, IDisposable
             MessageAttributeNames = new List<string>(new[] { "All" })
         };
 
-        var response = await _client.ReceiveMessageAsync(request, CancellationToken.None);
+        var response = await _client.ReceiveMessageAsync(request, cancellationToken);
 
         if (response.Messages?.Any() is not true) return null;
 
@@ -382,9 +382,10 @@ public class AmazonSqsTransport : ITransport, IInitializable, IDisposable
         {
             renewalTask.Dispose();
 
-            // if we get this far, we don't want to pass on the cancellation token
-            // ReSharper disable once MethodSupportsCancellation
-            await _client.DeleteMessageAsync(new DeleteMessageRequest(_queueUrl, sqsMessage.ReceiptHandle));
+            await _client.DeleteMessageAsync(
+                request: new DeleteMessageRequest(_queueUrl, sqsMessage.ReceiptHandle),
+                cancellationToken: CancellationToken.None //< avoid cancellation at this particular point, because we've already done the work
+            );
         });
 
         context.OnNack(async _ =>
@@ -396,15 +397,21 @@ public class AmazonSqsTransport : ITransport, IInitializable, IDisposable
 
             renewalTask.Dispose();
 
-            await _client.ChangeMessageVisibilityAsync(_queueUrl, sqsMessage.ReceiptHandle, timeoutSeconds, cancellationToken);
+            await _client.ChangeMessageVisibilityAsync(
+                queueUrl: _queueUrl,
+                receiptHandle: sqsMessage.ReceiptHandle,
+                visibilityTimeout: timeoutSeconds,
+                cancellationToken: CancellationToken.None //< avoid cancellation at this point, because the token might as well already be cancelled, and we want to try to immediately make the message visible to consumers again
+            );
         });
 
         var transportMessage = ExtractTransportMessageFrom(sqsMessage);
         if (MessageIsExpired(transportMessage, sqsMessage))
         {
-            // if the message is expired , we don't want to pass on the cancellation token
-            // ReSharper disable once MethodSupportsCancellation
-            await _client.DeleteMessageAsync(new DeleteMessageRequest(_queueUrl, sqsMessage.ReceiptHandle));
+            await _client.DeleteMessageAsync(
+                request: new DeleteMessageRequest(_queueUrl, sqsMessage.ReceiptHandle),
+                cancellationToken: CancellationToken.None //< if the message is expired , we don't want to pass on the cancellation token
+            );
             return null;
         }
         renewalTask.Start();

@@ -89,6 +89,9 @@
 ## 8.0.0
 * Update awssdk.sqs dependency to 4.0.0.5
 
+## 8.0.1
+* Tweak `CancellationToken` passing in receive flow to try to avoid cancellation at critical points
+
 ---
 
 [ajacksms]: https://github.com/ajacksms

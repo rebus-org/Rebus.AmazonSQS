@@ -7,6 +7,8 @@ using NUnit.Framework;
 using Rebus.Activation;
 using Rebus.Config;
 using Rebus.Tests.Contracts.Extensions;
+// ReSharper disable AccessToDisposedClosure
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 
 namespace Rebus.AmazonSQS.Tests.Bugs;
 
@@ -17,17 +19,10 @@ public class CanStartWithDefaultCredsAndRegion : SqsFixtureBase
     [Ignore("Can apparently only be run when EC2 creds are present")]
     public async Task Yeas()
     {
-        var gotTheString = new ManualResetEvent(false);
+        using var gotTheString = new ManualResetEvent(false);
+        using var activator = new BuiltinHandlerActivator();
 
-        var activator = new BuiltinHandlerActivator();
-
-        Using(activator);
-
-        activator.Handle<string>(str =>
-        {
-            gotTheString.Set();
-            return Task.CompletedTask;
-        });
+        activator.Handle<string>(async _ => gotTheString.Set());
 
         Configure.With(activator)
             .Transport(t =>

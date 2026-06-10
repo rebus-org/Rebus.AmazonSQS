@@ -8,9 +8,9 @@
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="awssdk.sqs" Version="4.0.0.5" />
-		<PackageReference Include="microsoft.net.test.sdk" Version="17.14.1" />
-		<PackageReference Include="nunit" Version="3.14.0" />
-		<PackageReference Include="nunit3testadapter" Version="5.0.0">
+		<PackageReference Include="microsoft.net.test.sdk" Version="18.6.0" />
+		<PackageReference Include="nunit" Version="4.6.1" />
+		<PackageReference Include="nunit3testadapter" Version="6.2.0">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>

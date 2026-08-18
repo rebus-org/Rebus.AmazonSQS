@@ -14,7 +14,7 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="rebus.tests.contracts" Version="8.2.6" />
+		<PackageReference Include="rebus.tests.contracts" Version="8.9.1" />
 	</ItemGroup>
 	<ItemGroup>
 		<None Update="sqs_connectionstring.txt">

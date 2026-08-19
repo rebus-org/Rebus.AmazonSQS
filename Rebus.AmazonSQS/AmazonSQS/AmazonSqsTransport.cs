@@ -317,17 +317,18 @@ public class AmazonSqsTransport : ITransport, IInitializable, IDisposable
             entry.DelaySeconds = delaySeconds.Value;
         }
 
-        if (message.DestinationAddress.EndsWith(".fifo"))
+        // MessageGroupId is meaningful on standard queues too, where it identifies a tenant and enables SQS fair
+        // queues: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-fair-queues.html
+        // MessageDeduplicationId, on the other hand, remains FIFO-only.
+        if (headers.TryGetValue(MessageGroupIdHeader, out var messageGroupId))
         {
-            if (headers.TryGetValue(MessageGroupIdHeader, out var messageGroupId))
-            {
-                entry.MessageGroupId = messageGroupId;
-            }
+            entry.MessageGroupId = messageGroupId;
+        }
 
-            if (headers.TryGetValue(MessageDeduplicationIdHeader, out var messageDeduplicationId))
-            {
-                entry.MessageDeduplicationId = messageDeduplicationId;
-            }
+        if (message.DestinationAddress.EndsWith(".fifo")
+            && headers.TryGetValue(MessageDeduplicationIdHeader, out var messageDeduplicationId))
+        {
+            entry.MessageDeduplicationId = messageDeduplicationId;
         }
 
         return entry;

@@ -92,6 +92,9 @@
 ## 8.0.1
 * Tweak `CancellationToken` passing in receive flow to try to avoid cancellation at critical points
 
+## 8.1.0
+* Set MessageGroupId on standard queues to enable SQS fair queues - thanks [skabariya]
+
 ---
 
 [ajacksms]: https://github.com/ajacksms
@@ -103,4 +106,5 @@
 [MooseMagnet]: https://github.com/MooseMagnet
 [mvandevy]: https://github.com/mvandevy
 [robvanpamel]: https://github.com/robvanpamel
+[skabariya]: https://github.com/skabariya
 [xhafan]: https://github.com/xhafan

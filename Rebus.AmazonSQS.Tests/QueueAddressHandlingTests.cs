@@ -106,7 +106,7 @@ public class QueueAddressHandlingTests : SqsFixtureBase
         {
             var received = await destinationTransport.Receive(context, new CancellationTokenSource().Token);
 
-            Assert.AreEqual("hallo", GetStringBody(received));
+            Assert.That(GetStringBody(received), Is.EqualTo("hallo"));
         });
     }
 

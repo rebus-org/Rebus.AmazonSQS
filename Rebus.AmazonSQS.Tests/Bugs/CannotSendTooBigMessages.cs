@@ -40,9 +40,13 @@ public class CannotSendTooBigMessages : SqsFixtureBase
             .Transport(t => t.UseAmazonSQS(connectionInfo.AccessKeyId, connectionInfo.SecretAccessKey, connectionInfo.RegionEndpoint, _queueName))
             .Start();
 
+        // SQS raised its maximum payload from 256 KiB to 1 MiB in August 2025, and the transport base64-encodes
+        // the body (+33%). The payload therefore has to exceed 1 MiB on the wire to be rejected as too long -
+        // while staying under the 2 MiB HTTP content length limit, or the request fails with a plain
+        // AmazonSQSException instead.
         var exception = Assert.ThrowsAsync<BatchRequestTooLongException>(async () =>
         {
-            await bus.SendLocal(string.Concat(Enumerable.Repeat("DET HER ER BARE EN NORMAL STRENG", 10000)));
+            await bus.SendLocal(string.Concat(Enumerable.Repeat("DET HER ER BARE EN NORMAL STRENG", 40000)));
         });
 
         Console.WriteLine(exception);
@@ -64,13 +68,17 @@ public class CannotSendTooBigMessages : SqsFixtureBase
             .Transport(t => t.UseAmazonSQS(connectionInfo.AccessKeyId, connectionInfo.SecretAccessKey, connectionInfo.RegionEndpoint, _queueName))
             .Start();
 
+        // SQS raised its maximum payload from 256 KiB to 1 MiB in August 2025, and the transport base64-encodes
+        // the body (+33%). The payload therefore has to exceed 1 MiB on the wire to be rejected as too long -
+        // while staying under the 2 MiB HTTP content length limit, or the request fails with a plain
+        // AmazonSQSException instead.
         var exception = Assert.ThrowsAsync<BatchRequestTooLongException>(async () =>
         {
             await bus.SendLocal(new SomeKindOfRequest
             {
                 SomeKindOfRequestModel = new SomeKindOfRequestModel
                 {
-                    HereWeHaveItems = Enumerable.Range(0, 300)
+                    HereWeHaveItems = Enumerable.Range(0, 450)
                         .Select(n => new SomeKindOfRequestModelBase.SomeKindOfItemModel
                         {
                             SubItems = Enumerable.Range(0, 10)
